@@ -3,16 +3,42 @@ import ReactDOM from 'react-dom';
 import './main.css';
 import S2Audio from './audio/audio';
 import Keys from './audio/keys';
+import Nav from "./comp/Nav";
+import Oscillators from './comp/Oscillators';
 
-class Main extends Component {
+class Container extends Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            mainDisplay: 'osc',
+        };
+    }
+
+    renderMainDisplay() {
+        switch (this.state.mainDisplay) {
+            case 'osc':
+                return (
+                    <Oscillators />
+                );
+                break;
+
+            default:
+                return (
+                    <div className="main-display-error">INVALID DISPLAY</div>
+                );
+                break;
+        }
+    }
+
     render() {
         return (
             <div className="container">
                 <header className="header">
-                Nav Component
+                <Nav />
                 </header>
                 <main className="main">
-                    Main Area
+                    {this.renderMainDisplay()}
                 </main>
                 <footer className="footer">
                     Footre
