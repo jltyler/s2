@@ -4,20 +4,21 @@ import './main.css';
 import S2Audio from './audio/audio';
 import Keys from './audio/keys';
 
-
-const audioEngine = new S2Audio();
-// audioEngine.start();
-
 class Main extends Component {
-    state = {
-        text: 'SO HERE I AMMM DOIN EVVEEREYTHANG I CANN',
-    }
     render() {
         return (
-        <div className="main">
-            {this.state.text}
-            <button id="start-engine" onClick={audioEngine.start}>Start</button>
-        </div>);
+            <div className="container">
+                <header className="header">
+                Nav Component
+                </header>
+                <main className="main">
+                    Main Area
+                </main>
+                <footer className="footer">
+                    Footre
+                </footer>
+            </div>
+        );
     }
 }
 
@@ -30,5 +31,3 @@ window.addEventListener('load', (e) => {
         console.log('No react container found! Expected "#react-app"');
 
 });
-
-// export default Main;
