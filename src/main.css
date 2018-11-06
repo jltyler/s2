@@ -1,0 +1,13 @@
+body {
+    background-color: black;
+}
+
+.main {
+    background: radial-gradient(black, blue, black, green, black, red);
+    min-height: 300px;
+    width: 800px;
+    margin: 0 auto;
+    color: white;
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 25px;
+}
