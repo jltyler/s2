@@ -1,13 +1,34 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 body {
     background-color: black;
 }
 
+.container {
+    position: absolute;
+    margin: 0;
+    background: radial-gradient(rgb(0, 83, 151), rgb(0, 0, 58));
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+}
+
+.header, .main, .footer {
+    width: 100%;
+    background-color: rgba(0, 136, 255, 0.267);
+    box-sizing: border-box;
+    border: 1px solid black;
+}
+
 .main {
-    background: radial-gradient(black, blue, black, green, black, red);
-    min-height: 300px;
-    width: 800px;
-    margin: 0 auto;
-    color: white;
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-    font-size: 25px;
+    height: 100%;
+}
+
+.footer {
+    position: fixed;
+    bottom: 0;
 }
