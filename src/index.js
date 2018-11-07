@@ -2,7 +2,7 @@ import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
 import './main.css';
 import Nav from "./comp/Nav";
-import Oscillators from './comp/Oscillators';
+import Oscillators from './comp/Osc/Oscillators';
 
 class Container extends Component {
     constructor(props) {

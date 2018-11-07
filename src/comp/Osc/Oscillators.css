@@ -1,0 +1,19 @@
+.oscillator {
+    display: inline-block;
+    vertical-align: top;
+    min-width: 450px;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.39);
+    padding: 2em;
+}
+
+.add-oscillator {
+    display: inline-block;
+    vertical-align: top;
+    min-width: 50px;
+    min-height: 50px;
+    background-color: rgba(0, 255, 255, 0.336);
+    font-size: 40px;
+    line-height: 50px;
+    text-align: center;
+}
