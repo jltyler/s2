@@ -4,7 +4,7 @@ import './main.css';
 import S2Audio from './audio/audio';
 import Keys from './audio/keys';
 import Nav from "./comp/Nav";
-import Oscillators from './comp/Oscillators';
+import Oscillators from './comp/Osc/Oscillators';
 
 class Container extends Component {
     constructor(props) {
