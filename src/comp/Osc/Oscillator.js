@@ -1,10 +1,12 @@
 import React from 'react';
+import {VerticalSlider} from '../Controls/Sliders';
 
 const Oscillator = (props) => {
     return (
         <div className="oscillator">
             <div className="oscillator-general">
                 Gain <br />
+                <VerticalSlider />
                 Pan <br />
                 Octave <br />
                 Tune <br />
