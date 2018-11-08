@@ -1,0 +1,12 @@
+.slider-vertical {
+    min-height: 120px;
+    border: 1px solid red;
+    position: relative;
+}
+
+.slider-vertical-bar {
+    width: 90%;
+    height: 12px;
+    background-color: mediumvioletred;
+    position: absolute;
+}
