@@ -1,5 +1,6 @@
 import React from 'react';
 import {VerticalSlider} from '../Controls/Sliders';
+import {Knob} from '../Controls/Knobs';
 
 const Oscillator = (props) => {
     return (
@@ -8,6 +9,7 @@ const Oscillator = (props) => {
                 Gain <br />
                 <VerticalSlider />
                 Pan <br />
+                <Knob minAngle={Math.PI} maxAngle={Math.PI * 2}/>
                 Octave <br />
                 Tune <br />
                 Waveform <br />

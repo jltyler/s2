@@ -12,6 +12,7 @@ class Container extends Component {
 
         this.state = {
             mainDisplay: 'osc',
+            extended: false,
         };
     }
 
@@ -31,6 +32,12 @@ class Container extends Component {
         }
     }
 
+    toggleFooter() {
+        this.setState((prevState) => {
+            return {extended: !prevState.extended};
+        });
+    }
+
     render() {
         return (
             <div className="container">
@@ -40,7 +47,8 @@ class Container extends Component {
                 <main className="main">
                     {this.renderMainDisplay()}
                 </main>
-                <footer className="footer">
+                <footer className={'footer' + (this.state.extended ? ' extended' : '')}>
+                    <button onClick={this.toggleFooter.bind(this)} >{this.state.extended ? 'v' : '^'}</button>
                     Footre
                 </footer>
             </div>

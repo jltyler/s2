@@ -14,12 +14,11 @@ class VerticalSlider extends Component {
     }
 
     clickHandler(e) {
-        console.log('clickHandler.this:',this);
-        const bounds = e.target.getBoundingClientRect();
-        const position = e.clientY - bounds.top;
+        const bounds = e.currentTarget.getBoundingClientRect();
+        const position = Math.max(Math.min((e.clientY - 8) - bounds.top, (bounds.bottom - bounds.top) - 12), 0);
         console.log(position);
         
-        const value = lerp(this.state.min, this.state.max, position / (bounds.bottom - bounds.top));
+        const value = lerp(this.state.min, this.state.max, position / (bounds.bottom - bounds.top - 12));
         console.log(value);
         
         this.setState({
@@ -31,6 +30,7 @@ class VerticalSlider extends Component {
     render() {
         return (
             <div className="slider-vertical" onClick={this.clickHandler.bind(this)}>
+                <div className="slider-vertical-slot" />
                 <div className="slider-vertical-bar" style={{top: this.state.position}}/>
             </div>
         );

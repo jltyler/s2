@@ -1,12 +1,33 @@
 .slider-vertical {
+    display: inline-block;
     min-height: 120px;
-    border: 1px solid red;
+    width: 32px;;
+    border: 1px solid rgb(47, 0, 255);
     position: relative;
 }
 
 .slider-vertical-bar {
-    width: 90%;
+    width: 28px;
     height: 12px;
-    background-color: mediumvioletred;
+    background-color: rgb(67, 117, 255);
     position: absolute;
+    left: 5%;
+}
+
+.slider-vertical-slot {
+    position: absolute;
+    width: 50%;
+    height: 90%;
+    top: 5%;
+    border-right: 1px solid rgb(35, 0, 99);
+    box-sizing: border-box;
+}
+
+.knob {
+    display: inline-block;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: brown;
+    text-align: center;
 }
