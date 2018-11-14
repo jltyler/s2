@@ -4,19 +4,17 @@ import {lerp} from '../../Utility';
 class Knob extends Component {
     constructor(props) {
         super(props);
-        let minAngle = props.minAngle || Math.PI * .75;
-        if (minAngle < Math.PI / 2)
-            minAngle += Math.PI * 2;
-        let maxAngle = props.maxAngle || Math.PI * 2.25;
-        if (maxAngle <= minAngle)
-            maxAngle += Math.PI * 2;
+        this.min = props.min || 0;
+        this.max = props.max || 100;
+        this.minAngle = props.minAngle || Math.PI * .75;
+        if (this.minAngle < Math.PI / 2)
+            this.minAngle += Math.PI * 2;
+        this.maxAngle = props.maxAngle || Math.PI * 2.25;
+        if (this.maxAngle <= this.minAngle)
+            this.maxAngle += Math.PI * 2;
         this.state = {
-            min: props.min || 0,
-            max: props.max || 100,
             value: props.value || 50,
-            angle: 0,
-            minAngle,
-            maxAngle
+            angle: 0
         };
     }
 
@@ -35,10 +33,11 @@ class Knob extends Component {
             bounds.y + bounds.height / 2
         ];
         const rawAngle = Math.atan2(e.clientY - centerPoint[1], e.clientX - centerPoint[0]);
-        let angle = this.getFixedAngle(rawAngle);
-        angle = Math.min(this.state.maxAngle, Math.max(this.state.minAngle, angle));
-        const value = lerp(this.state.min, this.state.max, (angle - this.state.minAngle) / (this.state.maxAngle - this.state.minAngle));
+        const angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
+        const value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
         console.log(bounds.x, bounds.y, centerPoint, rawAngle, angle, value);
+        if (typeof this.props.handler === 'function')
+            this.props.handler(value);
         this.setState({
             angle,
             value

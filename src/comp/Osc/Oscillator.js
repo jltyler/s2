@@ -7,9 +7,9 @@ const Oscillator = (props) => {
         <div className="oscillator">
             <div className="oscillator-general">
                 Gain <br />
-                <VerticalSlider />
+                <VerticalSlider handler={(value) => console.log('sliderhandler(' + value + ')')} />
                 Pan <br />
-                <Knob minAngle={Math.PI} maxAngle={Math.PI * 2}/>
+                <Knob minAngle={Math.PI / 2} maxAngle={Math.PI / 2} handler={(value) => console.log('knobhandler(' + value + ')')}/>
                 Octave <br />
                 Tune <br />
                 Waveform <br />

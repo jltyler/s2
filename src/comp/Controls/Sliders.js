@@ -5,9 +5,9 @@ import {lerp} from '../../Utility';
 class VerticalSlider extends Component {
     constructor(props) {
         super(props);
+        this.min =  props.min || 0;
+        this.max =  props.max || 100;
         this.state = {
-            min: props.min || 0,
-            max: props.max || 100,
             value: props.value || 50,
             position: 0,
         };
@@ -15,11 +15,13 @@ class VerticalSlider extends Component {
 
     clickHandler(e) {
         const bounds = e.currentTarget.getBoundingClientRect();
-        const position = Math.max(Math.min((e.clientY - 8) - bounds.top, (bounds.bottom - bounds.top) - 12), 0);
-        console.log(position);
+        const position = Math.max(Math.min((e.clientY - 8) - bounds.top, (bounds.bottom - bounds.top) - 14), 0);
         
-        const value = lerp(this.state.min, this.state.max, position / (bounds.bottom - bounds.top - 12));
-        console.log(value);
+        const value = lerp(this.min, this.max, position / (bounds.bottom - bounds.top - 14));
+        console.log(position, value);
+
+        if (typeof this.props.handler === 'function')
+            this.props.handler(value);
         
         this.setState({
             value,
