@@ -6,19 +6,31 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const notePlannerInterval = 100; // Notes are planned every few milliseconds
 const notePlannerBuffer = .25; // Notes are planned this far in advance (in seconds)
 
-
-
-class GainEnvelope {
-    constructor() {
-
-    }
-}
-
-const defaultVoiceOptions = {
+const defaultGainEnvelope = {
     attack: 0.1,
     decay: 0.2,
     sustain: 0.7,
     release: 2.0,
+};
+
+class GainEnvelope {
+    constructor(audioContext, options = {}) {
+        if (!audioContext) console.error('GainEnvelope::GainEnvelope(): Invalid audioContext!');
+        this.ctx = audioContext;
+        this.options = Object.assign({}, defaultGainEnvelope, options);
+    }
+
+    newEnvelope(startTime) {
+        const gain = this.ctx.createGain();
+        gain.gain.cancelScheduledValues(startTime);
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(1, startTime + this.options.attack);
+        gain.gain.linearRampToValueAtTime(this.options.sustain, startTime + this.options.attack + this.options.decay);
+        return gain;
+    }
+}
+
+const defaultVoiceOptions = {
     singleEnvelope: false
 };
 
@@ -26,11 +38,13 @@ const defaultVoiceOptions = {
  * Holds voice information and creates oscillators
  */
 class Voice {
-    constructor(audioContext, options = {}) {
+    constructor(audioContext, gainEnvelope, options = {}) {
         if (!audioContext) console.error('Voice::Voice(): Invalid audioContext!');
         this.ctx = audioContext;
+        this.gainEnv = gainEnvelope;
         this.options = Object.assign({}, defaultVoiceOptions, options);
         console.log(this.options);
+
         this.playing = {};
         this.getOscId = (() => {
             let next = 0;
@@ -48,11 +62,7 @@ class Voice {
         const osc = this.ctx.createOscillator();
         osc.frequency.value = frequency;
 
-        const gain = this.ctx.createGain();
-        gain.gain.cancelScheduledValues(startTime);
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(1, startTime + this.options.attack);
-        gain.gain.linearRampToValueAtTime(this.options.sustain, startTime + this.options.attack + this.options.decay);
+        const gain = this.gainEnv.newEnvelope(startTime);
 
         osc.connect(gain).connect(destination || this.ctx.destination);
 
@@ -61,9 +71,9 @@ class Voice {
 
         osc.start(startTime);
         if (stopTime) {
-            gain.gain.linearRampToValueAtTime(0, stopTime + this.options.release);
-            osc.stop(stopTime + this.options.release + .1);
-            setTimeout(() => this.stop(id), (stopTime - startTime + this.options.release + 1) * 1000);
+            gain.gain.linearRampToValueAtTime(0, stopTime + this.gainEnv.options.release);
+            osc.stop(stopTime + this.gainEnv.options.release + .1);
+            setTimeout(() => this.stop(id), (stopTime - startTime + this.gainEnv.options.release + 1) * 1000);
         }
 
         return id;
@@ -74,9 +84,9 @@ class Voice {
         // console.log('release gain:',gain);
         gain.gain.cancelScheduledValues(this.ctx.currentTime);
         gain.gain.setValueAtTime(gain.gain.value, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + this.options.release);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + this.gainEnv.options.release);
 
-        this.playing[id][0].stop(this.ctx.currentTime + this.options.release + .1);
+        this.playing[id][0].stop(this.ctx.currentTime + this.gainEnv.options.release + .1);
         delete this.playing[id];
     }
 
@@ -166,17 +176,13 @@ class S2Audio {
     }
 
     start () {
-        const getId = (() => {
-            let next = 0;
-            return (() => next++);
-        })();
         // const np = new NotePlanner(Sequences.testSequence, null, this.ctx);
         // np.start()
-        const v = new Voice(this.ctx, {release: 1, sustain: 0.1});
+        const ge = new GainEnvelope(this.ctx, {release: 1, sustain: 1});
+        const v = new Voice(this.ctx, ge, {});
         const voices = {};
         bindKeys(
             (note) => {
-                const id = getId();
                 voices[note] = v.play(Notes[note], this.ctx.currentTime);
             },
             (note) => {
