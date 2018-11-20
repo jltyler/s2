@@ -16,29 +16,34 @@ const keys = {
     'Period': 'd4',
     'Semicolon': 'ds4',
     'Slash': 'e4',
-    'KeyA': 'f4',
-    'KeyW': 'fs4',
-    'KeyS': 'g4',
-    'KeyE': 'gs4',
-    'KeyD': 'a4',
-    'KeyR': 'as4',
-    'KeyF': 'b4',
-    'KeyG': 'c5',
-    'KeyY': 'cs5',
-    'KeyH': 'd5',
-    'KeyU': 'ds5',
-    'KeyJ': 'e5',
-    'KeyK': 'e5',
-    'KeyO': 'f5',
-    'KeyL': 'fs5',
-    'KeyP': 'g5',
-    'Semicolon': 'gs5',
-    'BracketLeft': 'a5',
-    'Quote': 'as5'
+    'KeyQ': 'f4',
+    'Digit2': 'fs4',
+    'KeyW': 'g4',
+    'Digit3': 'gs4',
+    'KeyE': 'a4',
+    'Digit4': 'as4',
+    'KeyR': 'b4',
+    'KeyT': 'c5',
+    'Digit6': 'cs5',
+    'KeyY': 'd5',
+    'Digit7': 'ds5',
+    'KeyU': 'e5',
+    'KeyI': 'f5',
+    'Digit9': 'fs5',
+    'KeyO': 'g5',
+    'Digit0': 'gs5',
+    'KeyP': 'a5',
+    'Minus': 'as5',
+    'BracketLeft': 'b5'
 };
 
 const pressed = {};
 
+/**
+ * Add key handlers for the window that call the handlers if the key is a valid note
+ * @param {function} pressHandler Handler for keys being pressed down
+ * @param {function} releaseHandler Handler for keys being released
+ */
 const bindKeys = (pressHandler, releaseHandler) => {
     window.addEventListener('keydown', (e) => {
         // console.log('keydown', e.code);

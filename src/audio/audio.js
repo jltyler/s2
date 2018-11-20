@@ -1,7 +1,8 @@
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-
 import Sequences from './sequences';
+import bindKeys from './keys';
+import Notes from './notes';
 
+const AudioContext = window.AudioContext || window.webkitAudioContext;
 const notePlannerInterval = 100; // Notes are planned every few milliseconds
 const notePlannerBuffer = .25; // Notes are planned this far in advance (in seconds)
 
@@ -39,12 +40,12 @@ class Voice {
 
         this.play = this.play.bind(this);
         this.stop = this.stop.bind(this);
+        this.release = this.release.bind(this);
+        this.stopAll = this.stopAll.bind(this);
     }
 
     play(frequency, startTime, stopTime=0, destination=undefined) {
         const osc = this.ctx.createOscillator();
-        const id = this.getOscId();
-        this.playing[id] = osc;
         osc.frequency.value = frequency;
 
         const gain = this.ctx.createGain();
@@ -53,27 +54,40 @@ class Voice {
         gain.gain.linearRampToValueAtTime(1, startTime + this.options.attack);
         gain.gain.linearRampToValueAtTime(this.options.sustain, startTime + this.options.attack + this.options.decay);
 
-
         osc.connect(gain).connect(destination || this.ctx.destination);
+
+        const id = this.getOscId();
+        this.playing[id] = [osc, gain];
 
         osc.start(startTime);
         if (stopTime) {
             gain.gain.linearRampToValueAtTime(0, stopTime + this.options.release);
-            osc.stop(stopTime + this.options.release + 1);
+            osc.stop(stopTime + this.options.release + .1);
             setTimeout(() => this.stop(id), (stopTime - startTime + this.options.release + 1) * 1000);
         }
 
         return id;
     }
 
+    release(id) {
+        const gain = this.playing[id][1];
+        // console.log('release gain:',gain);
+        gain.gain.cancelScheduledValues(this.ctx.currentTime);
+        gain.gain.setValueAtTime(gain.gain.value, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + this.options.release);
+
+        this.playing[id][0].stop(this.ctx.currentTime + this.options.release + .1);
+        delete this.playing[id];
+    }
+
     stop(id) {
-        this.playing[id].stop();
+        this.playing[id][0].stop();
         delete this.playing[id];
     }
 
     stopAll() {
         for (const id in Object.keys(this.playing)) {
-            this.playing[id].stop();
+            this.playing[id][0].stop();
         }
         this.playing = {};
     }
@@ -132,7 +146,6 @@ class NotePlanner {
     }
 }
 
-
 class S2Audio {
     constructor() {
         this.ctx = new AudioContext();
@@ -153,11 +166,25 @@ class S2Audio {
     }
 
     start () {
+        const getId = (() => {
+            let next = 0;
+            return (() => next++);
+        })();
         // const np = new NotePlanner(Sequences.testSequence, null, this.ctx);
         // np.start()
         const v = new Voice(this.ctx, {release: 1, sustain: 0.1});
-        const np = new NotePlanner(Sequences.testSequence, v, this.ctx)
-        np.start();
+        const voices = {};
+        bindKeys(
+            (note) => {
+                const id = getId();
+                voices[note] = v.play(Notes[note], this.ctx.currentTime);
+            },
+            (note) => {
+                v.release(voices[note]);
+            }
+        );
+        // const np = new NotePlanner(Sequences.testSequence, v, this.ctx)
+        // np.start();
     }
 
     startSequence() {
