@@ -1,6 +1,12 @@
 import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
 import './main.css';
+import S2Audio from './audio/audio';
+import Keys from './audio/keys';
+
+
+const audioEngine = new S2Audio();
+audioEngine.start();
 
 const textChoices = [
     'SO HERE I AMMM DOIN EVVEEREYTHANG I CANN',
@@ -34,16 +40,14 @@ class Main extends Component {
     }
 }
 
-console.log('hmmm...');
-
 window.addEventListener('load', (e) => {
+    // Keys((note) => console.log(note));
     const container = document.getElementById('react-app');
-    if (container) {
-        console.log('In the pipe. Five by five.');
+    if (container)
         ReactDOM.render(<Main />, container);
-    } else {
-        console.log('god damn you GOD DAMN YOU');
-    }
+    else
+        console.log('No react container found! Expected "#react-app"');
+
 });
 
 // export default Main;
