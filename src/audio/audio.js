@@ -26,22 +26,66 @@ class GainEnvelope {
         gain.gain.setValueAtTime(0, startTime);
         gain.gain.linearRampToValueAtTime(1, startTime + this.options.attack);
         gain.gain.linearRampToValueAtTime(this.options.sustain, startTime + this.options.attack + this.options.decay);
+        gain.release = ((stopTime) => {
+            gain.gain.cancelScheduledValues(stopTime);
+            gain.gain.setValueAtTime(gain.gain.value, stopTime);
+            gain.gain.linearRampToValueAtTime(0, stopTime + this.options.release);
+            return stopTime + this.options.release;
+        }).bind(this);
         return gain;
     }
 }
 
+const defaultFilterEnvelope = {
+    attack: 0.01,
+    decay: 0.01,
+    sustain: 1.0,
+    release: 0.01,
+    type: 'highpass',
+    freq: 22500,
+    Q: 1
+};
+
+class FilterEnvelope {
+    constructor(audioContext, options = {}) {
+        if (!audioContext) console.error('FilterEnvelope::FilterEnvelope(): Invalid audioContext!');
+        this.ctx = audioContext;
+        this.options = Object.assign({}, defaultFilterEnvelope, options);
+    }
+
+    newEnvelope(startTime) {
+        const filter = this.ctx.createBiquadFilter();
+        // filter.type = this.options.type;
+        filter.Q.value = this.options.Q;
+        filter.frequency.cancelScheduledValues(startTime);
+        filter.frequency.setValueAtTime(0, startTime);
+        filter.frequency.linearRampToValueAtTime(this.options.freq, startTime + this.options.attack);
+        filter.frequency.linearRampToValueAtTime(this.options.sustain * this.options.freq, startTime + this.options.attack + this.options.decay);
+        filter.release = ((stopTime) => {
+            filter.frequency.cancelScheduledValues(stopTime);
+            filter.frequency.setValueAtTime(filter.frequency.value, stopTime);
+            filter.frequency.linearRampToValueAtTime(0, stopTime + this.options.release);
+            return stopTime + this.options.release;
+        }).bind(this);
+        return filter;
+    }
+}
+
 const defaultVoiceOptions = {
-    singleEnvelope: false
+    waveform: 'sawtooth',
+    singleGainEnvelope: false,
+    singleFilterEnvelope: false
 };
 
 /**
  * Holds voice information and creates oscillators
  */
 class Voice {
-    constructor(audioContext, gainEnvelope, options = {}) {
+    constructor(audioContext, gainEnvelope, filterEnvelope, options = {}) {
         if (!audioContext) console.error('Voice::Voice(): Invalid audioContext!');
         this.ctx = audioContext;
         this.gainEnv = gainEnvelope;
+        this.filterEnv = filterEnvelope;
         this.options = Object.assign({}, defaultVoiceOptions, options);
         console.log(this.options);
 
@@ -58,19 +102,23 @@ class Voice {
         this.stopAll = this.stopAll.bind(this);
     }
 
-    play(frequency, startTime, stopTime=0, destination=undefined) {
+    play(frequency, destination, startTime, stopTime=0) {
         const osc = this.ctx.createOscillator();
+        osc.type = this.options.waveform;
         osc.frequency.value = frequency;
 
         const gain = this.gainEnv.newEnvelope(startTime);
+        const filter = this.filterEnv.newEnvelope(startTime);
 
-        osc.connect(gain).connect(destination || this.ctx.destination);
+        osc.connect(gain).connect(filter).connect(destination || this.ctx.destination);
 
         const id = this.getOscId();
         this.playing[id] = [osc, gain];
 
         osc.start(startTime);
         if (stopTime) {
+            const releaseTime = gain.release(stopTime);
+            gain.release
             gain.gain.linearRampToValueAtTime(0, stopTime + this.gainEnv.options.release);
             osc.stop(stopTime + this.gainEnv.options.release + .1);
             setTimeout(() => this.stop(id), (stopTime - startTime + this.gainEnv.options.release + 1) * 1000);
@@ -179,11 +227,14 @@ class S2Audio {
         // const np = new NotePlanner(Sequences.testSequence, null, this.ctx);
         // np.start()
         const ge = new GainEnvelope(this.ctx, {release: 1, sustain: 1});
-        const v = new Voice(this.ctx, ge, {});
+        const fe = new FilterEnvelope(this.ctx, {attack: 0.07, decay: 0.07, sustain: 0.01, release: 0.5, Q: 5, freq: 1000, type: 'lowpass'})
+        const comp = this.ctx.createDynamicsCompressor();
+        comp.connect(this.ctx.destination);
+        const v = new Voice(this.ctx, ge, fe, {waveform: 'square'});
         const voices = {};
         bindKeys(
             (note) => {
-                voices[note] = v.play(Notes[note], this.ctx.currentTime);
+                voices[note] = v.play(Notes[note], comp, this.ctx.currentTime);
             },
             (note) => {
                 v.release(voices[note]);
