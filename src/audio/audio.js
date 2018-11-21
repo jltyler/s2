@@ -55,7 +55,7 @@ class FilterEnvelope {
 
     newEnvelope(startTime) {
         const filter = this.ctx.createBiquadFilter();
-        // filter.type = this.options.type;
+        filter.type = this.options.type;
         filter.Q.value = this.options.Q;
         filter.frequency.cancelScheduledValues(startTime);
         filter.frequency.setValueAtTime(0, startTime);
@@ -74,7 +74,9 @@ class FilterEnvelope {
 const defaultVoiceOptions = {
     waveform: 'sawtooth',
     singleGainEnvelope: false,
-    singleFilterEnvelope: false
+    singleFilterEnvelope: false,
+    unison: 1,
+    unisonSpread: 0.5
 };
 
 /**
@@ -113,14 +115,14 @@ class Voice {
         osc.connect(gain).connect(filter).connect(destination || this.ctx.destination);
 
         const id = this.getOscId();
-        this.playing[id] = [osc, gain];
+        this.playing[id] = [osc, gain, filter];
 
         osc.start(startTime);
         if (stopTime) {
-            const releaseTime = gain.release(stopTime);
-            gain.release
-            gain.gain.linearRampToValueAtTime(0, stopTime + this.gainEnv.options.release);
-            osc.stop(stopTime + this.gainEnv.options.release + .1);
+            const releaseTime = gain.release(stopTime) + 0.01;
+            filter.release(stopTime);
+            // gain.gain.linearRampToValueAtTime(0, stopTime + this.gainEnv.options.release);
+            osc.stop(releaseTime);
             setTimeout(() => this.stop(id), (stopTime - startTime + this.gainEnv.options.release + 1) * 1000);
         }
 
@@ -128,13 +130,20 @@ class Voice {
     }
 
     release(id) {
+        const osc = this.playing[id][0];
         const gain = this.playing[id][1];
+        const filter = this.playing[id][2];
         // console.log('release gain:',gain);
-        gain.gain.cancelScheduledValues(this.ctx.currentTime);
-        gain.gain.setValueAtTime(gain.gain.value, this.ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + this.gainEnv.options.release);
-
-        this.playing[id][0].stop(this.ctx.currentTime + this.gainEnv.options.release + .1);
+        const releaseTime = gain.release(this.ctx.currentTime);
+        filter.release(this.ctx.currentTime);
+        // gain.gain.cancelScheduledValues(this.ctx.currentTime);
+        // gain.gain.setValueAtTime(gain.gain.value, this.ctx.currentTime);
+        // gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + this.gainEnv.options.release);
+        if (Array.isArray(osc)) {
+            osc.forEach(o => o.stop(releaseTime));
+        } else {
+            osc.stop(releaseTime);
+        }
         delete this.playing[id];
     }
 
@@ -226,8 +235,8 @@ class S2Audio {
     start () {
         // const np = new NotePlanner(Sequences.testSequence, null, this.ctx);
         // np.start()
-        const ge = new GainEnvelope(this.ctx, {release: 1, sustain: 1});
-        const fe = new FilterEnvelope(this.ctx, {attack: 0.07, decay: 0.07, sustain: 0.01, release: 0.5, Q: 5, freq: 1000, type: 'lowpass'})
+        const ge = new GainEnvelope(this.ctx, {release: .1, sustain: 1});
+        const fe = new FilterEnvelope(this.ctx, {attack: 2.5, decay: 0.001, sustain: 1, release: 3, Q: 5, freq: 22500, type: 'highpass'})
         const comp = this.ctx.createDynamicsCompressor();
         comp.connect(this.ctx.destination);
         const v = new Voice(this.ctx, ge, fe, {waveform: 'square'});
