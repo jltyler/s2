@@ -9,18 +9,18 @@ const Sequences = {
         },
         {
             freq: Notes.c5,
-            start: 0.2,
+            start: 0,
             stop: 0.4
         },
         {
             freq: Notes.e5,
-            start: 0.4,
+            start: 0,
             stop: 0.6
         },
         {
             freq: Notes.a5,
-            start: 0.6,
-            stop: 0.8
+            start: 0.4,
+            stop: 2.4
         }
     ]
 };

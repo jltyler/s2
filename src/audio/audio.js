@@ -99,8 +99,8 @@ class Voice {
 
 
         this.play = this.play.bind(this);
-        this.stop = this.stop.bind(this);
         this.release = this.release.bind(this);
+        this.stop = this.stop.bind(this);
         this.stopAll = this.stopAll.bind(this);
     }
 
@@ -136,9 +136,6 @@ class Voice {
         // console.log('release gain:',gain);
         const releaseTime = gain.release(this.ctx.currentTime);
         filter.release(this.ctx.currentTime);
-        // gain.gain.cancelScheduledValues(this.ctx.currentTime);
-        // gain.gain.setValueAtTime(gain.gain.value, this.ctx.currentTime);
-        // gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + this.gainEnv.options.release);
         if (Array.isArray(osc)) {
             osc.forEach(o => o.stop(releaseTime));
         } else {
@@ -161,13 +158,14 @@ class Voice {
 }
 
 class NotePlanner {
-    constructor(sequence, voice, audioContext) {
+    constructor(sequence, voice, audioContext, destination) {
         // console.log('New NotePlanner', sequence, voice, audioContext);
         this.voice = voice;
         this.sequence = [...sequence];
         this.ctx = audioContext;
+        this.destination = destination;
 
-        this.playing = [...sequence];
+        this.playing = [];
         this.startTime = audioContext.currentTime;
         this.running = false;
         this.plan = this.plan.bind(this);
@@ -175,34 +173,30 @@ class NotePlanner {
 
     start () {
         this.running = true;
+        this.startTime = this.ctx.currentTime;
+        this.playing = [...this.sequence];
         this.plan();
     }
 
     plan() {
-        console.log('Planning notes', this.playing);
+        // console.log('Planning notes', this.playing);
 
         if (!this.playing.length) return;
         let note = this.playing[0];
         let i = 0;
         while (note && note.start + this.startTime < this.ctx.currentTime + notePlannerBuffer) {
-            console.log('Planning note', note.freq, note.start, note.stop);
+            // console.log('Planning note', note.freq, note.start, note.stop);
 
-            this.voice.play(note.freq, this.startTime + note.start, this.startTime + note.stop)
+            this.voice.play(note.freq, this.destination, this.startTime + note.start, this.startTime + note.stop);
 
-            // Temporary
-            // const tOsc = this.ctx.createOscillator();
-            // tOsc.frequency.value = note.freq;
-            // tOsc.connect(this.ctx.destination);
-            // tOsc.start(this.startTime + note.start);
-            // tOsc.stop(this.startTime + note.stop);
             ++i;
             note = this.playing[i];
         }
 
-        console.log('Done planning notes.', i);
+        console.log('Planned ' + i + ' notes.');
 
         this.playing.splice(0, i);
-        console.log('this.playing after splice', this.playing);
+        // console.log('this.playing after splice', this.playing);
 
         if (this.running)
             setTimeout(this.plan, notePlannerInterval);
@@ -216,27 +210,13 @@ class NotePlanner {
 class S2Audio {
     constructor() {
         this.ctx = new AudioContext();
-        this.tempo = 60.0;
-        this.voices = [];
-        // const osc = this.ctx.createOscillator();
-        // osc.frequency.value = 440;
 
-        // const envGain = this.ctx.createGain();
-        // envGain.gain.cancelScheduledValues(this.ctx.currentTime);
-        // envGain.gain.setValueAtTime(0, this.ctx.currentTime);
-        // envGain.gain.linearRampToValueAtTime(1, this.ctx.currentTime + 2);
-        // envGain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 3);
-        // osc.connect(envGain);
-        // envGain.connect(this.ctx.destination);
-        // osc.start();
-        // osc.stop(this.ctx.currentTime + 4);
+        this.start = this.start.bind(this);
     }
 
     start () {
-        // const np = new NotePlanner(Sequences.testSequence, null, this.ctx);
-        // np.start()
         const ge = new GainEnvelope(this.ctx, {release: .1, sustain: 1});
-        const fe = new FilterEnvelope(this.ctx, {attack: 2.5, decay: 0.001, sustain: 1, release: 3, Q: 5, freq: 22500, type: 'highpass'})
+        const fe = new FilterEnvelope(this.ctx, {attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'})
         const comp = this.ctx.createDynamicsCompressor();
         comp.connect(this.ctx.destination);
         const v = new Voice(this.ctx, ge, fe, {waveform: 'square'});
@@ -249,12 +229,15 @@ class S2Audio {
                 v.release(voices[note]);
             }
         );
-        // const np = new NotePlanner(Sequences.testSequence, v, this.ctx)
-        // np.start();
+        const np = new NotePlanner(Sequences.testSequence, v, this.ctx, comp);
+
+        np.start();
     }
 
     startSequence() {
+        const np = new NotePlanner(Sequences.testSequence, v, this.ctx, comp);
 
+        np.start();
     }
 }
 
