@@ -76,7 +76,7 @@ const defaultVoiceOptions = {
     singleGainEnvelope: false,
     singleFilterEnvelope: false,
     unison: 1,
-    unisonSpread: 0.5
+    unisonSpread: 2
 };
 
 /**
@@ -105,24 +105,42 @@ class Voice {
     }
 
     play(frequency, destination, startTime, stopTime=0) {
-        const osc = this.ctx.createOscillator();
-        osc.type = this.options.waveform;
-        osc.frequency.value = frequency;
-
         const gain = this.gainEnv.newEnvelope(startTime);
         const filter = this.filterEnv.newEnvelope(startTime);
+        let oscs = undefined;
 
-        osc.connect(gain).connect(filter).connect(destination || this.ctx.destination);
+        if (this.options.unison > 1) {
+            oscs = [];
+            const minFreq = this.options.unisonSpread / 2 * -1 ;
+            const inc = this.options.unisonSpread / (this.options.unison - 1);
+            for (let i = 0; i < this.options.unison; ++i) {
+                const o = this.ctx.createOscillator();
+                oscs.push(o);
+                o.type = this.options.waveform;
+                o.frequency.value = frequency;
+                o.connect(gain);
+                o.start(startTime);
+            }
+        } else {
+            oscs = this.ctx.createOscillator();
+            oscs.type = this.options.waveform;
+            oscs.frequency.value = frequency;
+            oscs.connect(gain);
+            oscs.start(startTime);
+        }
+        gain.connect(filter).connect(destination || this.ctx.destination);
 
         const id = this.getOscId();
-        this.playing[id] = [osc, gain, filter];
+        this.playing[id] = [oscs, gain, filter];
 
-        osc.start(startTime);
         if (stopTime) {
             const releaseTime = gain.release(stopTime) + 0.01;
             filter.release(stopTime);
-            // gain.gain.linearRampToValueAtTime(0, stopTime + this.gainEnv.options.release);
-            osc.stop(releaseTime);
+            if (Array.isArray(oscs)) {
+                oscs.forEach(o => o.stop(releaseTime));
+            } else {
+                oscs.stop(releaseTime);
+            }
             setTimeout(() => this.stop(id), (stopTime - startTime + this.gainEnv.options.release + 1) * 1000);
         }
 
