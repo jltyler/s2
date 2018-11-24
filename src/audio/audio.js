@@ -194,7 +194,7 @@ class NotePlanner {
         this.ctx = audioContext;
         this.destination = destination;
 
-        this.playing = [];
+        this.remaining = [];
         this.startTime = audioContext.currentTime;
         this.running = false;
         this.plan = this.plan.bind(this);
@@ -203,15 +203,15 @@ class NotePlanner {
     start () {
         this.running = true;
         this.startTime = this.ctx.currentTime;
-        this.playing = [...this.sequence];
+        this.remaining = [...this.sequence];
         this.plan();
     }
 
     plan() {
         // console.log('Planning notes', this.playing);
 
-        if (!this.playing.length) return;
-        let note = this.playing[0];
+        if (!this.remaining.length) return;
+        let note = this.remaining[0];
         let i = 0;
         while (note && note.start + this.startTime < this.ctx.currentTime + notePlannerBuffer) {
             // console.log('Planning note', note.freq, note.start, note.stop);
@@ -219,12 +219,12 @@ class NotePlanner {
             this.voice.play(note.freq, this.destination, this.startTime + note.start, this.startTime + note.stop);
 
             ++i;
-            note = this.playing[i];
+            note = this.remaining[i];
         }
 
         console.log('Planned ' + i + ' notes.');
 
-        this.playing.splice(0, i);
+        this.remaining.splice(0, i);
         // console.log('this.playing after splice', this.playing);
 
         if (this.running)
@@ -241,9 +241,11 @@ class S2Audio {
         this.ctx = new AudioContext();
 
         this.start = this.start.bind(this);
+        this.initialized = false;
     }
 
     start () {
+        if (this.initialized) return;
         const ge = new GainEnvelope(this.ctx, {release: .1, sustain: 1});
         const fe = new FilterEnvelope(this.ctx, {attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'})
         const comp = this.ctx.createDynamicsCompressor();
@@ -261,6 +263,7 @@ class S2Audio {
         // const np = new NotePlanner(Sequences.testSequence, v, this.ctx, comp);
 
         // np.start();
+        this.initialized = true;
     }
 
     startSequence() {
