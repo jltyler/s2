@@ -1,6 +1,6 @@
 import Sequences from './sequences';
 import bindKeys from './keys';
-import Notes from './notes';
+import {NOTES, ALPHA} from './notes';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const notePlannerInterval = 100; // Notes are planned every few milliseconds
@@ -76,7 +76,7 @@ const defaultVoiceOptions = {
     singleGainEnvelope: false,
     singleFilterEnvelope: false,
     unison: 1,
-    unisonSpread: 2
+    unisonSpread: 1
 };
 
 /**
@@ -111,13 +111,13 @@ class Voice {
 
         if (this.options.unison > 1) {
             oscs = [];
-            const minFreq = this.options.unisonSpread / 2 * -1 ;
+            const minVal = this.options.unisonSpread / 2 * -1;
             const inc = this.options.unisonSpread / (this.options.unison - 1);
             for (let i = 0; i < this.options.unison; ++i) {
                 const o = this.ctx.createOscillator();
                 oscs.push(o);
                 o.type = this.options.waveform;
-                o.frequency.value = frequency;
+                o.frequency.value = frequency * Math.pow(ALPHA, minVal + inc * i);
                 o.connect(gain);
                 o.start(startTime);
             }
@@ -141,8 +141,9 @@ class Voice {
             } else {
                 oscs.stop(releaseTime);
             }
-            setTimeout(() => this.stop(id), (stopTime - startTime + this.gainEnv.options.release + 1) * 1000);
+            setTimeout(() => delete this.playing[id], (releaseTime + 1) * 1000);
         }
+        // else console.log('Undefined note length.');
 
         return id;
     }
@@ -163,13 +164,23 @@ class Voice {
     }
 
     stop(id) {
-        this.playing[id][0].stop();
+        const osc = this.playing[id][0];
+        if (Array.isArray(osc)) {
+            osc.forEach(o => o.stop());
+        } else {
+            osc.stop();
+        }
         delete this.playing[id];
     }
 
     stopAll() {
         for (const id in Object.keys(this.playing)) {
-            this.playing[id][0].stop();
+            const osc = this.playing[id][0];
+            if (Array.isArray(osc)) {
+                osc.forEach(o => o.stop());
+            } else {
+                osc.stop();
+            }
         }
         this.playing = {};
     }
@@ -237,19 +248,19 @@ class S2Audio {
         const fe = new FilterEnvelope(this.ctx, {attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'})
         const comp = this.ctx.createDynamicsCompressor();
         comp.connect(this.ctx.destination);
-        const v = new Voice(this.ctx, ge, fe, {waveform: 'square'});
+        const v = new Voice(this.ctx, ge, fe, {waveform: 'sawtooth', unison: 8, unisonSpread: 0.5});
         const voices = {};
         bindKeys(
             (note) => {
-                voices[note] = v.play(Notes[note], comp, this.ctx.currentTime);
+                voices[note] = v.play(NOTES[note], comp, this.ctx.currentTime);
             },
             (note) => {
                 v.release(voices[note]);
             }
         );
-        const np = new NotePlanner(Sequences.testSequence, v, this.ctx, comp);
+        // const np = new NotePlanner(Sequences.testSequence, v, this.ctx, comp);
 
-        np.start();
+        // np.start();
     }
 
     startSequence() {
