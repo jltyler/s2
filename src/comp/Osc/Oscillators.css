@@ -7,6 +7,19 @@
     padding: 2em;
 }
 
+
+.oscillator-general,
+.oscillator-envelope,
+.oscillator-tremolo {
+    display: block;
+}
+
+.oscillator-general-global,
+.oscillator-general-main {
+    display: inline-block;
+    vertical-align: top;
+}
+
 .add-oscillator {
     display: inline-block;
     vertical-align: top;

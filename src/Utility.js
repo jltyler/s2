@@ -8,6 +8,14 @@
 const lerp = (min, max, scale) => min + scale * (max - min);
 
 /**
+ * Returns alpha (scalar) value from minimum, maximum, and provided value. Essentially the inverse of lerp
+ * @param {number} min Minimum value
+ * @param {number} max Maximum value
+ * @param {number} value Value to use
+ */
+const alpha = (min, max, value) => (value - min) / (max - min);
+
+/**
  * Returns random value greater than or equal to the minimum value and less the maximum value
  * @param {number} min Minimum value
  * @param {number} max Maximum value
@@ -29,4 +37,6 @@ const spread = (min, max, number) => {
     return values;
 };
 
-export {lerp, random, spread};
+
+
+export {lerp, alpha, random, spread};

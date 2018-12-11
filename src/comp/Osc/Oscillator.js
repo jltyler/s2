@@ -2,20 +2,26 @@ import React from 'react';
 import {VerticalSlider} from '../Controls/Sliders';
 import {Knob} from '../Controls/Knobs';
 
+const logHandler = function() {
+    console.log(arguments);
+};
+
 const Oscillator = (props) => {
     return (
         <div className="oscillator">
             <div className="oscillator-general">
-                Gain <br />
-                <VerticalSlider handler={(value) => console.log('sliderhandler(' + value + ')')} />
-                Pan <br />
-                <Knob minAngle={Math.PI / 2} maxAngle={Math.PI / 2} handler={(value) => console.log('knobhandler(' + value + ')')}/>
-                Octave <br />
-                Tune <br />
-                Waveform <br />
-                Unison <br />
-                Unison Spread <br />
-                Output destination <br />
+                <div className="oscillator-general-global">
+                    <VerticalSlider label="Gain" handler={logHandler} /> <br />
+                    <Knob label="Pan" handler={logHandler} min={0.0} max={1.0} value ={0.5} minAngle={Math.PI} maxAngle={Math.PI * 2} />
+                </div>
+                <div className="oscillator-general-main">
+                    <Knob label="Octave" handler={logHandler} min={-2} max={2} />
+                    <Knob label="Tune" handler={logHandler} min={-100} max={100} />
+                    Waveform <br />
+                    <Knob label="Unison" handler={logHandler} min={1} max={12} />
+                    <Knob label="Unison Spread" handler={logHandler} min={0.001} max={5} />
+                </div>
+                Output destination
             </div>
             <div className="oscillator-envelope">
                 On Off  <br />
@@ -31,7 +37,7 @@ const Oscillator = (props) => {
                 Amplitude <br />
                 Waveform <br />
             </div>
-        </div>    
+        </div>
     );
 }
 
