@@ -76,7 +76,9 @@ const defaultVoiceOptions = {
     singleGainEnvelope: false,
     singleFilterEnvelope: false,
     unison: 1,
-    unisonSpread: 1
+    unisonSpread: 1,
+    tremoloFrequency: 3,
+    tremoloAmplitude: 30,
 };
 
 /**
@@ -108,7 +110,6 @@ class Voice {
             return (() => next++);
         })();
 
-
         this.play = this.play.bind(this);
         this.release = this.release.bind(this);
         this.stop = this.stop.bind(this);
@@ -118,6 +119,12 @@ class Voice {
     play(frequency, destination, startTime, stopTime=0) {
         const gain = this.gainEnv.newEnvelope(startTime);
         const filter = this.filterEnv.newEnvelope(startTime);
+        const tremoloOsc = this.ctx.createOscillator();
+        const tremoloGain = this.ctx.createGain();
+        tremoloOsc.frequency.value = this.options.tremoloFrequency;
+        tremoloGain.gain.value = this.options.tremoloAmplitude;
+        tremoloOsc.connect(tremoloGain);
+        tremoloOsc.start(startTime);
         let oscs = undefined;
 
         if (this.options.unison > 1) {
@@ -129,6 +136,7 @@ class Voice {
                 oscs.push(o);
                 o.type = this.options.waveform;
                 o.frequency.value = frequency * Math.pow(ALPHA, minVal + inc * i);
+                tremoloGain.connect(o.detune);
                 o.connect(gain);
                 o.start(startTime);
             }
@@ -136,6 +144,7 @@ class Voice {
             oscs = this.ctx.createOscillator();
             oscs.type = this.options.waveform;
             oscs.frequency.value = frequency;
+            tremoloGain.connect(oscs.detune);
             oscs.connect(gain);
             oscs.start(startTime);
         }
@@ -246,7 +255,7 @@ class S2Audio {
         const fe = new FilterEnvelope(this.ctx, {attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'})
         const comp = this.ctx.createDynamicsCompressor();
         comp.connect(this.ctx.destination);
-        const v = new Voice(this.ctx, ge, fe, {waveform: 'sawtooth', unison: 2, unisonSpread: 0.2});
+        const v = new Voice(this.ctx, ge, fe, {waveform: 'sawtooth', unison: 12, unisonSpread: 0.2, tremoloFrequency: 8, tremoloAmplitude: 80});
         const voices = {};
         bindKeys(
             (note) => {
