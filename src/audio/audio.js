@@ -80,6 +80,17 @@ const defaultVoiceOptions = {
 };
 
 /**
+ * Stops an oscillator or an array of oscillators at the specified time
+ */
+const stopOscs = (osc, stopTime = 0) => {
+    if (Array.isArray(osc)) {
+        osc.forEach(o => o.stop(stopTime));
+    } else {
+        osc.stop(stopTime);
+    }
+};
+
+/**
  * Holds voice information and creates oscillators
  */
 class Voice {
@@ -136,11 +147,7 @@ class Voice {
         if (stopTime) {
             const releaseTime = gain.release(stopTime) + 0.01;
             filter.release(stopTime);
-            if (Array.isArray(oscs)) {
-                oscs.forEach(o => o.stop(releaseTime));
-            } else {
-                oscs.stop(releaseTime);
-            }
+            stopOscs(oscs, releaseTime);
             setTimeout(() => delete this.playing[id], (releaseTime + 1) * 1000);
         }
         // else console.log('Undefined note length.');
@@ -155,32 +162,20 @@ class Voice {
         // console.log('release gain:',gain);
         const releaseTime = gain.release(this.ctx.currentTime);
         filter.release(this.ctx.currentTime);
-        if (Array.isArray(osc)) {
-            osc.forEach(o => o.stop(releaseTime));
-        } else {
-            osc.stop(releaseTime);
-        }
+        stopOscs(osc, releaseTime);
         delete this.playing[id];
     }
 
     stop(id) {
         const osc = this.playing[id][0];
-        if (Array.isArray(osc)) {
-            osc.forEach(o => o.stop());
-        } else {
-            osc.stop();
-        }
+        stopOscs(osc);
         delete this.playing[id];
     }
 
     stopAll() {
         for (const id in Object.keys(this.playing)) {
             const osc = this.playing[id][0];
-            if (Array.isArray(osc)) {
-                osc.forEach(o => o.stop());
-            } else {
-                osc.stop();
-            }
+            stopOscs(osc);
         }
         this.playing = {};
     }
@@ -241,6 +236,7 @@ class S2Audio {
         this.ctx = new AudioContext();
 
         this.start = this.start.bind(this);
+        this.startSequence = this.startSequence.bind(this);
         this.initialized = false;
     }
 
@@ -250,7 +246,7 @@ class S2Audio {
         const fe = new FilterEnvelope(this.ctx, {attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'})
         const comp = this.ctx.createDynamicsCompressor();
         comp.connect(this.ctx.destination);
-        const v = new Voice(this.ctx, ge, fe, {waveform: 'sawtooth', unison: 8, unisonSpread: 0.5});
+        const v = new Voice(this.ctx, ge, fe, {waveform: 'sawtooth', unison: 2, unisonSpread: 0.2});
         const voices = {};
         bindKeys(
             (note) => {
