@@ -4,11 +4,7 @@ const NOTES = {
 
 const ALPHA = Math.pow(2, 1 / 12);
 
-const aCode = 'a'.charCodeAt(0);
-const gCode = 'g'.charCodeAt(0);
-
 const noteNames = ['a', 'as', 'b', 'c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs'];
-
 
 const noteCountUp = 51;
 const noteCountDown = 46;
@@ -30,7 +26,6 @@ for (let i = 0, name = 0, j = 4; i < noteCountDown; ++i, --name) {
 }
 
 // console.log(NOTES);
-
 
 export {
     ALPHA,

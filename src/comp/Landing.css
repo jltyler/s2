@@ -1,0 +1,13 @@
+.landing-page {
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0px;
+    transition: top 1s ease-in-out 1;
+    z-index: 1000;
+    background-color: blueviolet;
+}
+
+.landing-page.hidden {
+    top: -100%;
+}

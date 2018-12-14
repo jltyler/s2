@@ -1,19 +1,24 @@
 import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
+import LandingPage from './comp/Landing';
 import './main.css';
 import S2Audio from './audio/audio';
 import Keys from './audio/keys';
 import Nav from "./comp/Nav";
 import Oscillators from './comp/Osc/Oscillators';
 
-class Container extends Component {
+class Main extends Component {
     constructor(props) {
         super(props);
 
         this.state = {
             mainDisplay: 'osc',
-            extended: false,
+            showFooter: false,
+            showLanding: true
         };
+
+        this.toggleFooter = this.toggleFooter.bind(this);
+        this.hideLandingPage = this.hideLandingPage.bind(this);
     }
 
     renderMainDisplay() {
@@ -38,17 +43,22 @@ class Container extends Component {
         });
     }
 
+    hideLandingPage() {
+        this.setState({showLanding: false});
+    }
+
     render() {
         return (
             <div className="container">
+                <LandingPage hidden={!this.state.showLanding} clickHandler={this.hideLandingPage} />s
                 <header className="header">
                 <Nav />
                 </header>
                 <main className="main">
                     {this.renderMainDisplay()}
                 </main>
-                <footer className={'footer' + (this.state.extended ? ' extended' : '')}>
-                    <button onClick={this.toggleFooter.bind(this)} >{this.state.extended ? 'v' : '^'}</button>
+                <footer className={'footer' + (this.state.showFooter ? ' extended' : '')}>
+                    <button onClick={this.toggleFooter} >{this.state.showFooter ? 'v' : '^'}</button>
                     Footre
                 </footer>
             </div>
@@ -56,7 +66,7 @@ class Container extends Component {
     }
 }
 
-window.addEventListener('load', (e) => {
+window.addEventListener('load', () => {
     // Keys((note) => console.log(note));
     const container = document.getElementById('react-app');
     if (container)

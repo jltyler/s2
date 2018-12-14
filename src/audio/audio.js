@@ -1,5 +1,5 @@
 import Sequences from './sequences';
-import bindKeys from './keys';
+import {bind as bindKeys, unbind as unbindKeys} from './keys';
 import {NOTES, ALPHA} from './notes';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -202,7 +202,7 @@ class Voice {
      * @param {number} [stopTime] When to release the note. If this is not provided you must manually call release or stop on the Voice
      * @returns {number} Internal id for note. An id must be provided when calling release or stop
      */
-    play(frequency, destination, startTime, stopTime=0) {
+    play(frequency, destination, startTime, stopTime = 0) {
         const gain = this.gainEnv.newEnvelope(startTime);
         const filter = this.filterEnv.newEnvelope(startTime);
 
@@ -348,23 +348,32 @@ class NotePlanner {
  */
 class S2Audio {
     constructor() {
+        this.initialized = false;
+        this.voices = {};
+
         this.init = this.init.bind(this);
         this.start = this.start.bind(this);
         this.startSequence = this.startSequence.bind(this);
-        this.initialized = false;
+        this.keysBound = false;
     }
 
     init() {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         audioContext = new AudioContext();
-        this.voices = [];
         this.initialized = true;
+    }
+
+    newVoice(name='Voice') {
+        const ge = new GainEnvelope();
+        const fe = new FilterEnvelope();
+        if (name in this.voices) name = name + '+';
+        this.voices[name] = new Voice(ge, fe);
     }
 
     start () {
         if (!this.initialized) return;
         const ge = new GainEnvelope({release: .1, sustain: 1});
-        const fe = new FilterEnvelope({attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'})
+        const fe = new FilterEnvelope({attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'});
         const comp = audioContext.createDynamicsCompressor();
         comp.connect(audioContext.destination);
         const v = new Voice(ge, fe, {waveform: 'sawtooth', unison: 12, unisonSpread: 0.2, tremoloFrequency: 8, tremoloAmplitude: 80});
@@ -386,6 +395,10 @@ class S2Audio {
         const np = new NotePlanner(Sequences.testSequence, v, this.ctx, comp);
 
         np.start();
+    }
+
+    getAudioContext() {
+        return audioContext;
     }
 }
 

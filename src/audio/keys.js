@@ -1,4 +1,4 @@
-const keys = {
+const noteMap = {
     'KeyZ': 'c3',
     'KeyS': 'cs3',
     'KeyX': 'd3',
@@ -39,27 +39,42 @@ const keys = {
 
 const pressed = {};
 
-/**
- * Add key handlers for the window that call the handlers if the key is a valid note
- * @param {function} pressHandler Handler for keys being pressed down
- * @param {function} releaseHandler Handler for keys being released
- */
-const bindKeys = (pressHandler, releaseHandler) => {
-    window.addEventListener('keydown', (e) => {
-        // console.log('keydown', e.code);
-        if (!(e.code in pressed) && (e.code in keys)) {
-            pressed[e.code] = true;
-            pressHandler(keys[e.code]);
-        }
-    });
+let pressHandler = (() => false);
+let releaseHandler = (() => false);
 
-    window.addEventListener('keyup', (e) => {
-        // console.log('keyup', e.code);
-        delete pressed[e.code];
-        if (e.code in keys) {
-            releaseHandler(keys[e.code]);
-        }
-    });
+const pressEvent = (e) => {
+    // console.log('keydown', e.code);
+    if (!(e.code in pressed) && (e.code in noteMap)) {
+        pressed[e.code] = true;
+        pressHandler(noteMap[e.code]);
+    }
 }
 
-export default bindKeys;
+const releaseEvent = (e) => {
+    // console.log('keyup', e.code);
+    delete pressed[e.code];
+    if (e.code in noteMap) {
+        releaseHandler(noteMap[e.code]);
+    }
+}
+
+/**
+ * Bind key handlers for the window that call the handlers if the key is a valid note. The handler will recieve a string depicting a note
+ * @param {function} pressCallback Handler for keys being pressed down
+ * @param {function} releaseCallback Handler for keys being released
+ */
+const bind = (pressCallback, releaseCallback) => {
+    if (typeof pressCallback === 'function')
+        pressHandler = pressCallback;
+    if (typeof releaseCallback === 'function')
+        releaseHandler = releaseCallback;
+    window.addEventListener('keydown', pressEvent);
+    window.addEventListener('keyup', releaseEvent);
+}
+
+const unbind = () => {
+    window.removeEventListener('keydown', pressEvent);
+    window.removeEventListener('keyup', releaseEvent);
+}
+
+export {bind, unbind};
