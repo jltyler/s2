@@ -3,9 +3,10 @@ import ReactDOM from 'react-dom';
 import LandingPage from './comp/Landing';
 import './main.css';
 import S2Audio from './audio/audio';
-import Keys from './audio/keys';
 import Nav from "./comp/Nav";
 import Oscillators from './comp/Osc/Oscillators';
+
+const s2audio = new S2Audio();
 
 class Main extends Component {
     constructor(props) {
@@ -14,7 +15,8 @@ class Main extends Component {
         this.state = {
             mainDisplay: 'osc',
             showFooter: false,
-            showLanding: true
+            showLanding: true,
+            removeLanding: false
         };
 
         this.toggleFooter = this.toggleFooter.bind(this);
@@ -39,18 +41,20 @@ class Main extends Component {
 
     toggleFooter() {
         this.setState((prevState) => {
-            return {extended: !prevState.extended};
+            return {showFooter: !prevState.showFooter};
         });
     }
 
     hideLandingPage() {
         this.setState({showLanding: false});
+        setTimeout(() => this.setState({removeLanding: true}), 1000);
+        s2audio.init();
     }
 
     render() {
         return (
             <div className="container">
-                <LandingPage hidden={!this.state.showLanding} clickHandler={this.hideLandingPage} />s
+                {(!this.state.removeLanding) && <LandingPage hidden={!this.state.showLanding} clickHandler={this.hideLandingPage} />}
                 <header className="header">
                 <Nav />
                 </header>

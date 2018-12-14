@@ -370,6 +370,10 @@ class S2Audio {
         this.voices[name] = new Voice(ge, fe);
     }
 
+    getVoice(name) {
+        if (name in this.voices) return this.voices;
+    }
+
     start () {
         if (!this.initialized) return;
         const ge = new GainEnvelope({release: .1, sustain: 1});
