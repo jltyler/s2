@@ -55,7 +55,7 @@ class Main extends Component {
         return (
             <div className="container">
                 {(!this.state.removeLanding) && <LandingPage hidden={!this.state.showLanding} clickHandler={this.hideLandingPage} />}
-                <button onClick={s2audio.start}>Testing time</button>
+                <button onClick={s2audio.keysOn}>Testing time</button>
                 <header className="header">
                 <Nav />
                 </header>

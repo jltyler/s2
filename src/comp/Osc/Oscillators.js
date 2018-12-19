@@ -2,24 +2,38 @@ import React, {Component} from 'react';
 import Oscillator from './Oscillator';
 import './Oscillators.css';
 
-const oscData = [0,0,0];
-
 class Oscillators extends Component {
     constructor(props) {
         super(props);
 
-        this.state = {};
+        this.state = {
+            oscillators: []
+        };
+
+        if (props.interface) {
+            this.interface = props.interface;
+        }
+
+        this.addOscillator = this.addOscillator.bind(this);
+    }
+
+    addOscillator() {
+        this.setState((prevState) => {
+            const oscillators = [...prevState.oscillators];
+            oscillators.push(this.interface.newVoice());
+            return {oscillators};
+        });
     }
 
     render() {
         return (
             <div className="oscillators">
-                {oscData.map((osc, i) => {
+                {this.state.oscillators.map((osc, i) => {
                     return (
-                        <Oscillator interface={this.props.interface} key={i} />
+                        <Oscillator name={osc} voice={this.props.interface.getVoice(osc)} interface={this.props.interface} key={i} />
                     );
                 })}
-                <div className="add-oscillator">+</div>
+                <div className="add-oscillator" onClick={this.addOscillator}>+</div>
             </div>
         );
     }

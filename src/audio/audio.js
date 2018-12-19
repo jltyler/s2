@@ -422,12 +422,16 @@ class NotePlanner {
 class S2Audio {
     constructor() {
         this.initialized = false;
+        this.keysBound = false;
         this.voices = {};
+        this.playing = {};
 
         this.init = this.init.bind(this);
-        this.start = this.start.bind(this);
         this.startSequence = this.startSequence.bind(this);
-        this.keysBound = false;
+        this.newVoice = this.newVoice.bind(this);
+        this.getVoice = this.getVoice.bind(this);
+        this.keysOn = this.keysOn.bind(this);
+
     }
 
     init() {
@@ -441,45 +445,31 @@ class S2Audio {
         const fe = new FilterEnvelope();
         if (name in this.voices) name = name + '+';
         this.voices[name] = new Voice({destination: audioContext.destination});
-        return this.voices[name];
+        return name;
     }
 
     getVoice(name) {
         if (name in this.voices) return this.voices[name];
     }
 
-    start () {
-        if (!this.initialized) return;
-        const ge = new GainEnvelope({release: .1, sustain: 1});
-        const fe = new FilterEnvelope({attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'});
-
-        const comp = audioContext.createDynamicsCompressor();
-        comp.connect(audioContext.destination);
-        const v = this.newVoice('testingvoice');
-        // v.setOption('waveform', 'sine');
-        // const v = new Voice({destination: comp, waveform: 'sawtooth', unison: 1, unisonSpread: 0.2, pan: 0.0});
-
-        const testTremoloOsc = audioContext.createOscillator();
-        testTremoloOsc.frequency.value = 10;
-        testTremoloOsc.start();
-        const testTremoloGain = audioContext.createGain();
-        testTremoloGain.gain.value = 10;
-        testTremoloOsc.connect(testTremoloGain);
-
-        v.addConnection('detune', testTremoloGain);
-
-        const voices = {};
+    keysOn() {
         bindKeys(
-            (note) => {
-                voices[note] = v.play(NOTES[note], audioContext.currentTime);
-            },
-            (note) => {
-                v.release(voices[note]);
-            }
+            ((note) => {
+                this.playing[note] = [];
+                for (name in this.voices) {
+                    const v = this.voices[name];
+                    this.playing[note].push([v, v.play(NOTES[note], audioContext.currentTime)]);
+                }
+            }).bind(this),
+            ((note) => {
+                const voices = this.playing[note];
+                voices.forEach(v => v[0].release(v[1]));
+            }).bind(this)
         );
-        // const np = new NotePlanner(Sequences.testSequence, v, comp);
+    }
 
-        // np.start();
+    keysOff() {
+        unbindKeys();
     }
 
     startSequence() {
