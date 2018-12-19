@@ -27,7 +27,7 @@ class Main extends Component {
         switch (this.state.mainDisplay) {
             case 'osc':
                 return (
-                    <Oscillators />
+                    <Oscillators interface={s2audio} />
                 );
                 break;
 
@@ -55,6 +55,7 @@ class Main extends Component {
         return (
             <div className="container">
                 {(!this.state.removeLanding) && <LandingPage hidden={!this.state.showLanding} clickHandler={this.hideLandingPage} />}
+                <button onClick={s2audio.start}>Testing time</button>
                 <header className="header">
                 <Nav />
                 </header>

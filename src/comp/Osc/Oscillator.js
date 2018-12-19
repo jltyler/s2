@@ -7,20 +7,25 @@ const logHandler = function() {
     console.log(arguments);
 };
 
+const setVoiceOption = (iface, key, value) => {
+    console.log('setVoiceOption', iface, '\nKey', key,'\nVal' , value);
+    iface.getVoice('testingvoice').setOption(key, value);
+};
+
 const Oscillator = (props) => {
     return (
         <div className="oscillator">
             <div className="oscillator-general">
                 <div className="oscillator-general-global">
                     <VerticalSlider label="Gain" handler={logHandler} /> <br />
-                    <Knob label="Pan" handler={logHandler} min={0.0} max={1.0} value={0.5} minAngle={Math.PI} maxAngle={Math.PI * 2} />
+                    <Knob label="Pan" handler={setVoiceOption.bind(null, props.interface, 'pan')} min={-1.0} max={1.0} />
                 </div>
                 <div className="oscillator-general-main">
-                    <Knob label="Octave" handler={logHandler} min={-2} max={2} />
-                    <Knob label="Tune" handler={logHandler} min={-100} max={100} />
+                    <Knob label="Octave" handler={setVoiceOption.bind(null, props.interface, 'octave')} min={-2} max={2} snap={1} />
+                    <Knob label="Tune" handler={setVoiceOption.bind(null, props.interface, 'detune')} min={-1} max={1} />
                     Waveform <br />
-                    <Knob label="Unison" handler={logHandler} min={1} max={12} />
-                    <Knob label="Unison Spread" handler={logHandler} min={0.001} max={5} />
+                    <Knob label="Unison" handler={setVoiceOption.bind(null, props.interface, 'unison')} min={1} max={12} snap={1} />
+                    <Knob label="Unison Spread" handler={setVoiceOption.bind(null, props.interface, 'unisonSpread')} min={0.001} max={5} />
                 </div>
                 Output destination
             </div>

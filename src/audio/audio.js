@@ -31,6 +31,8 @@ class GainEnvelope {
         this.options = Object.assign({}, defaultGainEnvelope, options);
         this.attachRelease = this.attachRelease.bind(this);
         this.newEnvelope = this.newEnvelope.bind(this);
+        this.setOption = this.setOption.bind(this);
+        this.getOption = this.getOption.bind(this);
     }
 
     /**
@@ -58,6 +60,16 @@ class GainEnvelope {
             gain.gain.linearRampToValueAtTime(0, stopTime + this.options.release);
             return stopTime + this.options.release;
         }).bind(this);
+    }
+
+    setOption(key, value) {
+        if (key in this.options) {
+            this.options[key] = value;
+        }
+    }
+
+    getOption(key) {
+        return this.options[key];
     }
 }
 
@@ -91,6 +103,8 @@ class FilterEnvelope {
         this.options = Object.assign({}, defaultFilterEnvelope, options);
         this.attachRelease = this.attachRelease.bind(this);
         this.newEnvelope = this.newEnvelope.bind(this);
+        this.setOption = this.setOption.bind(this);
+        this.getOption = this.getOption.bind(this);
     }
 
     /**
@@ -121,16 +135,33 @@ class FilterEnvelope {
             return stopTime + this.options.release;
         }).bind(this);
     }
+
+    setOption(key, value) {
+        if (key in this.options) {
+            this.options[key] = value;
+        }
+    }
+
+    getOption(key) {
+        return this.options[key];
+    }
 }
 
 const defaultVoiceOptions = {
     waveform: 'sawtooth',
-    singleGainEnvelope: false,
-    singleFilterEnvelope: false,
+    octave: 0,
+    detune: 0,
+    fine: 0,
+    gain: 1.0,
+    pan: 0.0,
     unison: 1,
     unisonSpread: 1,
-    tremoloFrequency: 10,
-    tremoloAmplitude: 0,
+    destination: undefined,
+    useEnvelope: false,
+    attack: 0.1,
+    decay: 0.1,
+    sustain: 1.0,
+    release: 1.5,
 };
 
 /**
@@ -154,16 +185,16 @@ class Voice {
      * @param {FilterEnvelope} filterEnvelope FilterEnvelope instance to use
      * @param {Object} options Voice options object
      * @param {string} options.waveform String representing waveform type. Default: 'sawtooth'
+     * @param {number} options.octave Increase or decrease by octaves. Default: 0
+     * @param {number} options.detune Detune measured in semitones. Default: 0
+     * @param {number} options.pan Pan to left or right. Default: 0
      * @param {number} options.unison How many seperate oscillators to use for unison. Default: 1
      * @param {number} options.unisonSpread How far the oscillator frequencies should be spread. Default: 1 semitone
-     * @param {number} options.tremoloFrequency Frequency for the tremolo effect on the oscillator frequency. Default: 10
-     * @param {number} options.tremoloAmplitude Amplitude for the tremolo effect. Default: 0
      */
-    constructor(gainEnvelope, filterEnvelope, options = {}) {
+    constructor(options = {}) {
         if (!audioContext) console.error('Voice::Voice(): Invalid audioContext!');
-        this.gainEnv = gainEnvelope;
-        this.filterEnv = filterEnvelope;
         this.options = Object.assign({}, defaultVoiceOptions, options);
+        this.gainEnv = new GainEnvelope({});
         console.log(this.options);
 
         this.playing = {};
@@ -172,22 +203,32 @@ class Voice {
             return (() => next++);
         })();
 
+        this.connections = {
+            'detune': null,
+            'pan': null,
+        };
+
         this.newOscillator = this.newOscillator.bind(this);
         this.play = this.play.bind(this);
+        this.connectOscParams = this.connectOscParams.bind(this);
+        this.connectParams = this.connectParams.bind(this);
         this.release = this.release.bind(this);
         this.stop = this.stop.bind(this);
         this.stopAll = this.stopAll.bind(this);
+        this.addConnection = this.addConnection.bind(this);
+        this.setOption = this.setOption.bind(this);
+        this.getOption = this.getOption.bind(this);
+
     }
 
     /**
      * Creates new oscillator node
      * @private
      */
-    newOscillator(frequency, tremoloGain, destination, startTime) {
-        o = audioContext.createOscillator();
+    newOscillator(frequency, destination, startTime) {
+        const o = audioContext.createOscillator();
         o.type = this.options.waveform;
         o.frequency.value = frequency;
-        tremoloGain.connect(o.detune);
         o.connect(destination);
         o.start(startTime);
         return o;
@@ -197,48 +238,61 @@ class Voice {
      * Creates new oscillators and envelope nodes and plays a note on them. Returns the id of the note played.
      * NOTE: If you don't provide a stopTime you must call the release or stop yourself and provide the id returned from this function
      * @param {number} frequency Frequency to play
-     * @param {AudioDestinationNode} destination Destination node (uses audioContext.destination if this is falsey)
      * @param {number} startTime When to play the note
      * @param {number} [stopTime] When to release the note. If this is not provided you must manually call release or stop on the Voice
      * @returns {number} Internal id for note. An id must be provided when calling release or stop
      */
-    play(frequency, destination, startTime, stopTime = 0) {
-        const gain = this.gainEnv.newEnvelope(startTime);
-        const filter = this.filterEnv.newEnvelope(startTime);
+    play(frequency, startTime, stopTime = 0) {
 
-        const tremoloOsc = audioContext.createOscillator();
-        const tremoloGain = audioContext.createGain();
-        tremoloOsc.frequency.value = this.options.tremoloFrequency;
-        tremoloGain.gain.value = this.options.tremoloAmplitude;
-        tremoloOsc.connect(tremoloGain);
-        tremoloOsc.start(startTime);
+        const gain = this.options.useEnvelope ? this.gainEnv.newEnvelope(startTime) : audioContext.createGain();
+        const panner = audioContext.createStereoPanner();
+        const compressor = audioContext.createDynamicsCompressor();
+        panner.pan.value = this.options.pan;
 
-        let oscs = undefined;
+        let oscs = null;
+
+        const actualFrequency = frequency * Math.pow(2, this.options.octave) * Math.pow(ALPHA, this.options.detune);
 
         if (this.options.unison > 1) {
             oscs = [];
             const minVal = this.options.unisonSpread / 2 * -1;
             const inc = this.options.unisonSpread / (this.options.unison - 1);
             for (let i = 0; i < this.options.unison; ++i) {
-                oscs.push(this.newOscillator(frequency * Math.pow(ALPHA, minVal + inc * i), tremoloGain, gain, startTime));
+                const o = this.newOscillator(actualFrequency * Math.pow(ALPHA, minVal + inc * i), panner, startTime);
+                oscs.push(o);
+                this.connectOscParams(o);
             }
         } else {
-            oscs = this.newOscillator(frequency, tremoloGain, gain, startTime);
+            oscs = this.newOscillator(actualFrequency, panner, startTime);
+            this.connectOscParams(oscs);
         }
-        gain.connect(filter).connect(destination || audioContext.destination);
+
+        panner.connect(gain).connect(compressor).connect(this.options.destination || audioContext.destination);
+        this.connectParams(panner, gain);
 
         const id = this.getOscId();
-        this.playing[id] = [oscs, gain, filter];
+        this.playing[id] = [oscs, gain, this.options.useEnvelope];
 
         if (stopTime) {
-            const releaseTime = gain.release(stopTime) + 0.01;
-            filter.release(stopTime);
+            const releaseTime = this.options.useEnvelope ? gain.release(stopTime) + 0.01 : stopTime;
             stopOscs(oscs, releaseTime);
             setTimeout(() => delete this.playing[id], (releaseTime + 1) * 1000);
         }
         // else console.log('Undefined note length.');
 
         return id;
+    }
+
+    connectOscParams (osc) {
+        if (this.connections.detune) {
+            this.connections.detune.connect(osc.detune);
+        }
+    }
+
+    connectParams(pan, gain) {
+        if (this.connections.pan) {
+            this.connections.pan.connect(pan.pan);
+        }
     }
 
     /**
@@ -248,10 +302,9 @@ class Voice {
     release(id) {
         const osc = this.playing[id][0];
         const gain = this.playing[id][1];
-        const filter = this.playing[id][2];
+        const env = this.playing[id][2];
         // console.log('release gain:',gain);
-        const releaseTime = gain.release(audioContext.currentTime);
-        filter.release(audioContext.currentTime);
+        const releaseTime = env ? gain.release(audioContext.currentTime) : audioContext.currentTime;
         stopOscs(osc, releaseTime);
         delete this.playing[id];
     }
@@ -275,6 +328,26 @@ class Voice {
             stopOscs(osc);
         }
         this.playing = {};
+    }
+
+    addConnection(param, source) {
+        if (param in this.connections) {
+            console.log(`Parameter '${param}' is listed in my connections`);
+            if (source instanceof AudioNode) {
+                console.log(`Source ${source} is a valid AudioNode.`);
+                this.connections[param] = source;
+            }
+        }
+    }
+
+    setOption(key, value) {
+        if (key in this.options) {
+            this.options[key] = value;
+        }
+    }
+
+    getOption(key) {
+        return this.options[key];
     }
 }
 
@@ -367,24 +440,38 @@ class S2Audio {
         const ge = new GainEnvelope();
         const fe = new FilterEnvelope();
         if (name in this.voices) name = name + '+';
-        this.voices[name] = new Voice(ge, fe);
+        this.voices[name] = new Voice({destination: audioContext.destination});
+        return this.voices[name];
     }
 
     getVoice(name) {
-        if (name in this.voices) return this.voices;
+        if (name in this.voices) return this.voices[name];
     }
 
     start () {
         if (!this.initialized) return;
         const ge = new GainEnvelope({release: .1, sustain: 1});
         const fe = new FilterEnvelope({attack: 0.001, decay: 0.1, sustain: 0.08, release: 0.5, Q: 10, freq: 11250, type: 'lowpass'});
+
         const comp = audioContext.createDynamicsCompressor();
         comp.connect(audioContext.destination);
-        const v = new Voice(ge, fe, {waveform: 'sawtooth', unison: 12, unisonSpread: 0.2, tremoloFrequency: 8, tremoloAmplitude: 80});
+        const v = this.newVoice('testingvoice');
+        // v.setOption('waveform', 'sine');
+        // const v = new Voice({destination: comp, waveform: 'sawtooth', unison: 1, unisonSpread: 0.2, pan: 0.0});
+
+        const testTremoloOsc = audioContext.createOscillator();
+        testTremoloOsc.frequency.value = 10;
+        testTremoloOsc.start();
+        const testTremoloGain = audioContext.createGain();
+        testTremoloGain.gain.value = 10;
+        testTremoloOsc.connect(testTremoloGain);
+
+        v.addConnection('detune', testTremoloGain);
+
         const voices = {};
         bindKeys(
             (note) => {
-                voices[note] = v.play(NOTES[note], comp, this.ctx.currentTime);
+                voices[note] = v.play(NOTES[note], audioContext.currentTime);
             },
             (note) => {
                 v.release(voices[note]);

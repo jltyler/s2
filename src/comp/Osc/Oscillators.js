@@ -2,20 +2,7 @@ import React, {Component} from 'react';
 import Oscillator from './Oscillator';
 import './Oscillators.css';
 
-const oscData = [
-    {
-        freq: 440,
-        gain: 1.0,
-    },
-    {
-        freq: 440,
-        gain: 1.0,
-    },
-    {
-        freq: 440,
-        gain: 1.0,
-    },
-];
+const oscData = [0,0,0];
 
 class Oscillators extends Component {
     constructor(props) {
@@ -29,7 +16,7 @@ class Oscillators extends Component {
             <div className="oscillators">
                 {oscData.map((osc, i) => {
                     return (
-                        <Oscillator key={i} osc={osc} />
+                        <Oscillator interface={this.props.interface} key={i} />
                     );
                 })}
                 <div className="add-oscillator">+</div>
