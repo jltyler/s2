@@ -25,14 +25,19 @@ class Oscillators extends Component {
         });
     }
 
+    renderOscillators() {
+        const voices = this.interface.getVoices();
+        const jsx = [];
+        for (name in voices) {
+            jsx.push(<Oscillator name={name} voice={voices[name]} key={name} />);
+        }
+        return jsx;
+    }
+
     render() {
         return (
             <div className="oscillators">
-                {this.state.oscillators.map((osc, i) => {
-                    return (
-                        <Oscillator name={osc} voice={this.props.interface.getVoice(osc)} interface={this.props.interface} key={i} />
-                    );
-                })}
+                {this.renderOscillators()}
                 <div className="add-oscillator" onClick={this.addOscillator}>+</div>
             </div>
         );

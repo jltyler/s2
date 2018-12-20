@@ -13,8 +13,8 @@ import {lerp, alpha} from '../../Utility';
 class Knob extends Component {
     constructor(props) {
         super(props);
-        this.min = props.min || 0;
-        this.max = props.max || 100;
+        this.min = (typeof props.min === 'number' ? props.min : 0);
+        this.max = (typeof props.max === 'number' ? props.max : 100);
 
         this.minAngle = (typeof props.minAngle === 'number' ? props.minAngle : Math.PI * .75);
         while (this.minAngle < 0)

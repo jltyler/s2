@@ -39,24 +39,28 @@ const noteMap = {
 
 const pressed = {};
 
+for (const code of Object.keys(noteMap)) {
+    pressed[code] = false;
+}
+
 let pressHandler = (() => false);
 let releaseHandler = (() => false);
 
 const pressEvent = (e) => {
     // console.log('keydown', e.code);
-    if (!(e.code in pressed) && (e.code in noteMap)) {
+    if ((e.code in noteMap) && !(pressed[e.code])) {
         pressed[e.code] = true;
         pressHandler(noteMap[e.code]);
     }
-}
+};
 
 const releaseEvent = (e) => {
     // console.log('keyup', e.code);
-    delete pressed[e.code];
+    pressed[e.code] = false;
     if (e.code in noteMap) {
         releaseHandler(noteMap[e.code]);
     }
-}
+};
 
 /**
  * Bind key handlers for the window that call the handlers if the key is a valid note. The handler will recieve a string depicting a note
@@ -70,11 +74,17 @@ const bind = (pressCallback, releaseCallback) => {
         releaseHandler = releaseCallback;
     window.addEventListener('keydown', pressEvent);
     window.addEventListener('keyup', releaseEvent);
-}
+};
 
 const unbind = () => {
     window.removeEventListener('keydown', pressEvent);
     window.removeEventListener('keyup', releaseEvent);
-}
+};
 
-export {bind, unbind};
+const release = () => {
+    for (const code in pressed) {
+        pressed[code] = false;
+    }
+};
+
+export {bind, unbind, release};

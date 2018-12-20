@@ -1,5 +1,5 @@
 import Sequences from './sequences';
-import {bind as bindKeys, unbind as unbindKeys} from './keys';
+import {bind as bindKeys, unbind as unbindKeys, release as releaseKeys} from './keys';
 import {NOTES, ALPHA} from './notes';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -246,8 +246,8 @@ class Voice {
 
         const gain = this.options.useEnvelope ? this.gainEnv.newEnvelope(startTime) : audioContext.createGain();
         const panner = audioContext.createStereoPanner();
-        const compressor = audioContext.createDynamicsCompressor();
         panner.pan.value = this.options.pan;
+        const compressor = audioContext.createDynamicsCompressor();
 
         let oscs = null;
 
@@ -267,7 +267,10 @@ class Voice {
             this.connectOscParams(oscs);
         }
 
-        panner.connect(gain).connect(compressor).connect(this.options.destination || audioContext.destination);
+        const finalGain = audioContext.createGain();
+        finalGain.gain.value = this.options.gain;
+
+        panner.connect(gain).connect(compressor).connect(finalGain).connect(this.options.destination || audioContext.destination);
         this.connectParams(panner, gain);
 
         const id = this.getOscId();
@@ -323,7 +326,7 @@ class Voice {
      * Immediately stop all notes
      */
     stopAll() {
-        for (const id in Object.keys(this.playing)) {
+        for (const id of Object.keys(this.playing)) {
             const osc = this.playing[id][0];
             stopOscs(osc);
         }
@@ -348,6 +351,14 @@ class Voice {
 
     getOption(key) {
         return this.options[key];
+    }
+
+    /**
+     * GainEnvelope getter
+     * @returns {GainEnvelope}
+     */
+    getEnvelope() {
+        return this.gainEnv;
     }
 }
 
@@ -430,14 +441,26 @@ class S2Audio {
         this.startSequence = this.startSequence.bind(this);
         this.newVoice = this.newVoice.bind(this);
         this.getVoice = this.getVoice.bind(this);
+        this.getVoices = this.getVoices.bind(this);
         this.keysOn = this.keysOn.bind(this);
-
+        this.stop = this.stop.bind(this);
     }
 
     init() {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         audioContext = new AudioContext();
         this.initialized = true;
+    }
+
+    /**
+     * Stop all noise
+     */
+    stop() {
+        for (name in this.voices) {
+            this.voices[name].stopAll();
+        }
+        this.playing = {};
+        releaseKeys();
     }
 
     newVoice(name='Voice') {
@@ -452,11 +475,15 @@ class S2Audio {
         if (name in this.voices) return this.voices[name];
     }
 
+    getVoices() {
+        return this.voices;
+    }
+
     keysOn() {
         bindKeys(
             ((note) => {
                 this.playing[note] = [];
-                for (name in this.voices) {
+                for (const name in this.voices) {
                     const v = this.voices[name];
                     this.playing[note].push([v, v.play(NOTES[note], audioContext.currentTime)]);
                 }

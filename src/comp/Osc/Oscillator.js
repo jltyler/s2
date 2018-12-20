@@ -12,12 +12,17 @@ const setVoiceOption = (voice, key, value) => {
     voice.setOption(key, value);
 };
 
+const setEnvelopeOption = (voice, key, value) => {
+    console.log('setEnvelopeOption', voice, '\nKey', key,'\nVal' , value);
+    voice.getEnvelope().setOption(key, value);
+};
+
 const Oscillator = (props) => {
     return (
         <div className="oscillator">
             <div className="oscillator-general">
                 <div className="oscillator-general-global">
-                    <VerticalSlider label="Gain" handler={logHandler} /> <br />
+                    <VerticalSlider label="Gain" handler={setVoiceOption.bind(null, props.voice, 'gain')} min={1.0} max={0.0} /> <br />
                     <Knob label="Pan" handler={setVoiceOption.bind(null, props.voice, 'pan')} min={-1.0} max={1.0} />
                 </div>
                 <div className="oscillator-general-main">
@@ -31,11 +36,11 @@ const Oscillator = (props) => {
             </div>
             <div className="oscillator-envelope">
                 <h2>Envelope (gain)</h2>
-                <Switch label="Active" handler={logHandler} />
-                <Knob label="Attack" handler={logHandler} min={0.001} max={5.0} value={0.1} />
-                <Knob label="Decay" handler={logHandler} min={0.001} max={5.0} value={0.001} />
-                <Knob label="Sustain" handler={logHandler} min={0.001} max={1.0} value={1.0} />
-                <Knob label="Release" handler={logHandler} min={0.001} max={5.0} value={0.5} />
+                <Switch label="Active" handler={setVoiceOption.bind(null, props.voice, 'useEnvelope')} />
+                <Knob label="Attack" handler={setEnvelopeOption.bind(null, props.voice, 'attack')} min={0.001} max={5.0} value={0.1} />
+                <Knob label="Decay" handler={setEnvelopeOption.bind(null, props.voice, 'decay')} min={0.001} max={5.0} value={0.001} />
+                <Knob label="Sustain" handler={setEnvelopeOption.bind(null, props.voice, 'sustain')} min={0} max={1.0} value={1.0} />
+                <Knob label="Release" handler={setEnvelopeOption.bind(null, props.voice, 'release')} min={0.001} max={5.0} value={0.5} />
                 Display  <br />
             </div>
             <div className="oscillator-tremolo">
