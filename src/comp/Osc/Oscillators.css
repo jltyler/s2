@@ -20,7 +20,7 @@
     vertical-align: top;
 }
 
-.add-oscillator {
+.add-oscillator, .add-lfo {
     display: inline-block;
     vertical-align: top;
     min-width: 50px;

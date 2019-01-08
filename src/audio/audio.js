@@ -7,6 +7,139 @@ let audioContext = undefined; // AudioContext instance is created when S2Audio::
 const notePlannerInterval = 100; // Delay between planning notes
 const notePlannerBuffer = .25; // Notes are plannesd this far in advance (in seconds)
 
+
+const defaultEnvelope = {
+    attack: 0.1,
+    decay: 0.2,
+    sustain: 1.0,
+    release: 2.0,
+    singular: false
+};
+
+class Envelope {
+    constructor(options = {}) {
+        if (!audioContext) console.error('Envelope::Envelope(): Invalid audioContext!');
+        this.options = Object.assign({}, defaultEnvelope, options);
+    }
+
+    connect(destination) {
+        const gain = audioContext.createGain();
+    }
+}
+
+const defaultLFO = {
+    frequency: 1,
+    amplitude: 10,
+    waveform: 'sine',
+    singular: false
+};
+
+class LFO {
+    constructor(options = {}) {
+        if (!audioContext) console.error('LFO::LFO(): Invalid audioContext!');
+        this.options = Object.assign({}, defaultLFO, options);
+
+        // If singular envelope is selected these will hold the nodes' references
+        this.osc = null;
+        this.gain = null;
+
+        if (this.options.singular) this.enableSingular();
+
+        this.connections = {
+            'frequency': null,
+            'amplitude': null,
+        };
+
+        this.connect = this.connect.bind(this);
+        this.enableSingular = this.enableSingular.bind(this);
+        this.disableSingular = this.disableSingular.bind(this);
+        this.newLFO = this.newLFO.bind(this);
+        this.setFrequency = this.setFrequency.bind(this);
+        this.setAmplitude = this.setAmplitude.bind(this);
+        this.connectFrequency = this.connectFrequency.bind(this);
+        this.connectAmplitude = this.connectAmplitude.bind(this);
+        this.addConnection = this.addConnection.bind(this);
+
+    }
+
+    connect(destination) {
+        if (this.options.singular) {
+            this.gain.connect(destination);
+        } else {
+            this.newLFO().connect(destination);
+        }
+    }
+
+    enableSingular() {
+        this.options.singular = true;
+        this.osc = audioContext.createOscillator();
+        this.osc.frequency.value = this.options.frequency;
+        this.connectFrequency(this.osc);
+
+        this.gain = audioContext.createGain();
+        this.gain.gain.value = this.options.amplitude;
+        this.connectAmplitude(this.gain);
+
+        this.osc.connect(this.gain);
+        this.osc.start();
+    }
+
+    disableSingular() {
+        this.options.singular = false;
+        this.osc.stop();
+        this.osc = null;
+        this.gain = null;
+    }
+
+    newLFO() {
+        const osc = audioContext.createOscillator();
+        osc.frequency.value = this.options.frequency;
+        this.connectFrequency(osc);
+
+        const gain = audioContext.createGain();
+        gain.gain.value = this.options.amplitude;
+        this.connectAmplitude(gain);
+
+        osc.start();
+        osc.connect(gain);
+        return gain;
+    }
+
+    setFrequency(freq) {
+        this.options.frequency = freq;
+        if (this.options.singular) this.osc.frequency.value = freq;
+    }
+
+    setAmplitude(amp) {
+        this.options.amplitude = amp;
+        if (this.options.singular) this.gain.gain.value = amp;
+    }
+
+    connectFrequency(osc) {
+        if (this.connections.frequency) {
+            this.connections.frequency.connect(osc.detune);
+        }
+    }
+
+    connectAmplitude(gain) {
+        if (this.connections.amplitude) {
+            this.connections.amplitude.connect(gain.gain);
+        }
+    }
+
+    addConnection(param, source) {
+        if (param in this.connections) {
+            if (source instanceof LFO || source instanceof Envelope) {
+                this.connections[param] = source;
+                if (this.options.singular) {
+                    this.connectFrequency(this.osc);
+                    this.connectAmplitude(this.gain);
+                }
+            } else console.warn(`Source is NOT a valid connector!`);
+        } else console.warn(`Parameter '${param}' is NOT a valid AudioParam!`);
+    }
+}
+
 const defaultGainEnvelope = {
     attack: 0.1,
     decay: 0.2,
@@ -335,12 +468,10 @@ class Voice {
 
     addConnection(param, source) {
         if (param in this.connections) {
-            console.log(`Parameter '${param}' is listed in my connections`);
-            if (source instanceof AudioNode) {
-                console.log(`Source ${source} is a valid AudioNode.`);
+            if (source instanceof LFO || source instanceof Envelope) {
                 this.connections[param] = source;
-            }
-        }
+            } else console.warn(`Source is NOT a valid connector!`);
+        } else console.warn(`Parameter '${param}' is NOT a valid AudioParam!`);
     }
 
     setOption(key, value) {
@@ -435,20 +566,31 @@ class S2Audio {
         this.initialized = false;
         this.keysBound = false;
         this.voices = {};
+        this.LFOs = {};
         this.playing = {};
 
         this.init = this.init.bind(this);
+        this.stop = this.stop.bind(this);
         this.startSequence = this.startSequence.bind(this);
         this.newVoice = this.newVoice.bind(this);
         this.getVoice = this.getVoice.bind(this);
         this.getVoices = this.getVoices.bind(this);
+        this.renameVoice = this.renameVoice.bind(this);
+        this.removeVoice = this.removeVoice.bind(this);
+        this.newLFO = this.newLFO.bind(this);
+        this.getLFO = this.getLFO.bind(this);
+        this.getLFOs = this.getLFOs.bind(this);
+        this.renameLFO = this.renameLFO.bind(this);
+        this.removeLFO = this.removeLFO.bind(this);
         this.keysOn = this.keysOn.bind(this);
-        this.stop = this.stop.bind(this);
     }
 
     init() {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         audioContext = new AudioContext();
+
+        // this.LFOtest = new LFO({frequency: 12, amplitude: 5});
+
         this.initialized = true;
     }
 
@@ -468,6 +610,7 @@ class S2Audio {
         const fe = new FilterEnvelope();
         if (name in this.voices) name = name + '+';
         this.voices[name] = new Voice({destination: audioContext.destination});
+        // this.voices[name].addConnection('detune', this.LFOtest);
         return name;
     }
 
@@ -477,6 +620,57 @@ class S2Audio {
 
     getVoices() {
         return this.voices;
+    }
+
+    renameVoice(name, newName) {
+        if (newName in this.voices) newName = newName + '+';
+        if (name in this.voices) {
+            this.voices[newName] = this.voices[name];
+        }
+        return newName;
+    }
+
+    removeVoice(name) {
+        if (name in this.voices) delete this.voices[name];
+    }
+
+    newLFO(name='LFO') {
+        if (name in this.LFOs) name = name + '+';
+        this.LFOs[name] = new LFO();
+        // TEMP
+        const lfos = Object.keys(this.LFOs);
+        if (lfos.length === 2) {
+            this.LFOs[lfos[0]].addConnection('frequency', this.LFOs[name]);
+        } else {
+            for (const v in this.voices) {
+                console.log('v');
+                console.log(v);
+                this.voices[v].addConnection('pan', this.LFOs[name]);
+            }
+        }
+        console.log(this.LFOs);
+        // TEMP END
+        return name;
+    }
+
+    getLFO(name) {
+        if (name in this.LFOs) return this.LFOs[name];
+    }
+
+    getLFOs() {
+        return this.LFOs;
+    }
+
+    renameLFO(name, newName) {
+        if (newName in this.LFOs) newName = newName + '+';
+        if (name in this.LFOs) {
+            this.LFOs[newName] = this.LFOs[name];
+        }
+        return newName;
+    }
+
+    removeLFO(name) {
+        if (name in this.LFOs) delete this.LFOs[name];
     }
 
     keysOn() {

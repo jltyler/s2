@@ -43,13 +43,6 @@ const Oscillator = (props) => {
                 <Knob label="Release" handler={setEnvelopeOption.bind(null, props.voice, 'release')} min={0.001} max={5.0} value={0.5} />
                 Display  <br />
             </div>
-            <div className="oscillator-tremolo">
-                <h2>Tremolo (frequency)</h2>
-                <Switch label="Active" handler={logHandler} />
-                <Knob label="Frequency" handler={logHandler} min={0} max={40} value={10} />
-                <Knob label="Amplitude" handler={logHandler} min={0} max={300} value={40} />
-                Waveform
-            </div>
         </div>
     );
 }

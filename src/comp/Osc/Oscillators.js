@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import Oscillator from './Oscillator';
+import LFO from './LFO';
 import './Oscillators.css';
 
 class Oscillators extends Component {
@@ -7,7 +8,8 @@ class Oscillators extends Component {
         super(props);
 
         this.state = {
-            oscillators: []
+            oscillators: [],
+            LFOs: [],
         };
 
         if (props.interface) {
@@ -15,6 +17,7 @@ class Oscillators extends Component {
         }
 
         this.addOscillator = this.addOscillator.bind(this);
+        this.addLFO = this.addLFO.bind(this);
     }
 
     addOscillator() {
@@ -25,11 +28,28 @@ class Oscillators extends Component {
         });
     }
 
+    addLFO() {
+        this.setState((prevState) => {
+            const LFOs = [...prevState.LFOs];
+            LFOs.push(this.interface.newLFO());
+            return {LFOs};
+        });
+    }
+
     renderOscillators() {
         const voices = this.interface.getVoices();
         const jsx = [];
-        for (name in voices) {
+        for (const name in voices) {
             jsx.push(<Oscillator name={name} voice={voices[name]} key={name} />);
+        }
+        return jsx;
+    }
+
+    renderLFOs() {
+        const LFOs = this.interface.getLFOs();
+        const jsx = [];
+        for (const name in LFOs) {
+            jsx.push(<LFO name={name} lfo={LFOs[name]} key={name} />);
         }
         return jsx;
     }
@@ -38,7 +58,9 @@ class Oscillators extends Component {
         return (
             <div className="oscillators">
                 {this.renderOscillators()}
+                {this.renderLFOs()}
                 <div className="add-oscillator" onClick={this.addOscillator}>+</div>
+                <div className="add-oscillator" onClick={this.addLFO}>+</div>
             </div>
         );
     }

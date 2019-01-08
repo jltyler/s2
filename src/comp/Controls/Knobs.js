@@ -63,7 +63,6 @@ class Knob extends Component {
         const rawAngle = Math.atan2(e.clientY - centerPoint[1], e.clientX - centerPoint[0]);
         let angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
         let value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
-        console.log(this.snap);
 
         if (this.snap) {
             value = Math.floor((value + this.snap / 2) / this.snap) * this.snap;
@@ -81,7 +80,7 @@ class Knob extends Component {
     render() {
         return (
             <div className="knob-container">
-                <div className="knob" onClick={this.clickHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>^</div> <br />
+                <div className="knob" onClick={this.clickHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
                 {this.props.label && <div className="knob-label">{this.props.label}</div>}
             </div>
         );
