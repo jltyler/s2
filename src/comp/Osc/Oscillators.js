@@ -49,7 +49,7 @@ class Oscillators extends Component {
         const LFOs = this.interface.getLFOs();
         const jsx = [];
         for (const name in LFOs) {
-            jsx.push(<LFO name={name} lfo={LFOs[name]} key={name} />);
+            jsx.push(<LFO name={name} lfo={LFOs[name]} key={name} interface={this.interface} />);
         }
         return jsx;
     }

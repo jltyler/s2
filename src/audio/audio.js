@@ -1,6 +1,7 @@
 import Sequences from './sequences';
 import {bind as bindKeys, unbind as unbindKeys, release as releaseKeys} from './keys';
 import {NOTES, ALPHA} from './notes';
+import {newIdGenerator} from '../Utility';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 let audioContext = undefined; // AudioContext instance is created when S2Audio::init is called
@@ -34,6 +35,8 @@ const defaultLFO = {
     singular: false
 };
 
+const newLFOId = newIdGenerator();
+
 class LFO {
     constructor(options = {}) {
         if (!audioContext) console.error('LFO::LFO(): Invalid audioContext!');
@@ -59,7 +62,7 @@ class LFO {
         this.connectFrequency = this.connectFrequency.bind(this);
         this.connectAmplitude = this.connectAmplitude.bind(this);
         this.addConnection = this.addConnection.bind(this);
-
+        this.id = newLFOId();
     }
 
     connect(destination) {
@@ -331,10 +334,11 @@ class Voice {
         console.log(this.options);
 
         this.playing = {};
-        this.getOscId = (() => {
-            let next = 0;
-            return (() => next++);
-        })();
+        this.getOscId = newIdGenerator();
+        // (() => {
+        //     let next = 0;
+        //     return (() => next++);
+        // })();
 
         this.connections = {
             'detune': null,
@@ -349,6 +353,7 @@ class Voice {
         this.stop = this.stop.bind(this);
         this.stopAll = this.stopAll.bind(this);
         this.addConnection = this.addConnection.bind(this);
+        this.removeConnection = this.removeConnection.bind(this);
         this.setOption = this.setOption.bind(this);
         this.getOption = this.getOption.bind(this);
 
@@ -474,6 +479,12 @@ class Voice {
         } else console.warn(`Parameter '${param}' is NOT a valid AudioParam!`);
     }
 
+    removeConnection(param) {
+        if (param in this.connections) {
+            this.connections[param] = null;
+        }
+    }
+
     setOption(key, value) {
         if (key in this.options) {
             this.options[key] = value;
@@ -568,20 +579,28 @@ class S2Audio {
         this.voices = {};
         this.LFOs = {};
         this.playing = {};
+        this.connections = {};
 
         this.init = this.init.bind(this);
         this.stop = this.stop.bind(this);
         this.startSequence = this.startSequence.bind(this);
+
         this.newVoice = this.newVoice.bind(this);
         this.getVoice = this.getVoice.bind(this);
         this.getVoices = this.getVoices.bind(this);
         this.renameVoice = this.renameVoice.bind(this);
         this.removeVoice = this.removeVoice.bind(this);
+
         this.newLFO = this.newLFO.bind(this);
         this.getLFO = this.getLFO.bind(this);
         this.getLFOs = this.getLFOs.bind(this);
         this.renameLFO = this.renameLFO.bind(this);
         this.removeLFO = this.removeLFO.bind(this);
+
+        this.getAvailableConnections = this.getAvailableConnections.bind(this);
+        this.addVoiceConnection = this.addVoiceConnection.bind(this);
+        this.removeVoiceConnection = this.removeVoiceConnection.bind(this);
+
         this.keysOn = this.keysOn.bind(this);
     }
 
@@ -637,7 +656,7 @@ class S2Audio {
     newLFO(name='LFO') {
         if (name in this.LFOs) name = name + '+';
         this.LFOs[name] = new LFO();
-        // TEMP
+        /* // TEMP
         const lfos = Object.keys(this.LFOs);
         if (lfos.length === 2) {
             this.LFOs[lfos[0]].addConnection('frequency', this.LFOs[name]);
@@ -649,7 +668,7 @@ class S2Audio {
             }
         }
         console.log(this.LFOs);
-        // TEMP END
+        // TEMP END */
         return name;
     }
 
@@ -671,6 +690,32 @@ class S2Audio {
 
     removeLFO(name) {
         if (name in this.LFOs) delete this.LFOs[name];
+    }
+
+    getAvailableConnections() {
+        const c = [];
+        for (const name in this.voices) {
+            const v = this.voices[name]
+            const s = name + '.';
+            for (const param in v.connections) {
+                if (v.connections[param] === null) {
+                    c.push(s + param);
+                }
+            }
+        }
+        return c;
+    }
+
+    addVoiceConnection(name, param, source) {
+        if (name in this.voices) {
+            this.voices[name].addConnection(param, source);
+        }
+    }
+
+    removeVoiceConnection(name, param) {
+        if (name in this.voices) {
+            this.voices[name].removeConnection(param);
+        }
     }
 
     keysOn() {

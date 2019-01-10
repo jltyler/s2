@@ -37,6 +37,12 @@ const spread = (min, max, number) => {
     return values;
 };
 
+/**
+ * Returns a function that returns an new id incremented by 1 every time it is called
+ */
+const newIdGenerator = (() => {
+    let nextId = -1;
+    return (() => ++nextId);
+});
 
-
-export {lerp, alpha, random, spread};
+export {lerp, alpha, random, spread, newIdGenerator};

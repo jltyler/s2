@@ -54,33 +54,45 @@ class Knob extends Component {
         return rawAngle;
     }
 
-    clickHandler(e) {
-        const bounds = e.currentTarget.getBoundingClientRect();
-        const centerPoint = [
-            bounds.x + bounds.width / 2,
-            bounds.y + bounds.height / 2
-        ];
-        const rawAngle = Math.atan2(e.clientY - centerPoint[1], e.clientX - centerPoint[0]);
+    getAngleValue(knobX, knobY, mouseX, mouseY) {
+        const rawAngle = Math.atan2(mouseY - knobY, mouseX - knobX);
         let angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
         let value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
-
         if (this.snap) {
             value = Math.floor((value + this.snap / 2) / this.snap) * this.snap;
             angle = lerp(this.minAngle, this.maxAngle, alpha(this.min, this.max, value));
         }
-        // console.log(rawAngle, this.getFixedAngle(rawAngle), angle);
-        if (typeof this.props.handler === 'function')
-            this.props.handler(value);
-        this.setState({
-            angle,
-            value
-        });
+        return {angle, value};
+    }
+
+    pressHandler(e) {
+        const bounds = e.currentTarget.getBoundingClientRect();
+        const knobCenterX = bounds.x + bounds.width / 2;
+        const knobCenterY = bounds.y + bounds.height / 2;
+        console.log('press', knobCenterX, knobCenterY);
+        
+        const onMouseMove = ((e) => {
+            const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
+            this.setState(o);
+        }).bind(this);
+        document.addEventListener('mousemove', onMouseMove);
+
+        const onMouseUp = ((e) => {
+            console.log('release', this.state.angle, this.state.value);
+            const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
+            if (typeof this.props.handler === 'function')
+                this.props.handler(o.value);
+            this.setState(o);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('mousemove', onMouseMove);
+        }).bind(this);
+        document.addEventListener('mouseup', onMouseUp);
     }
 
     render() {
         return (
             <div className="knob-container">
-                <div className="knob" onClick={this.clickHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
+                <div className="knob" onMouseDown={this.pressHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
                 {this.props.label && <div className="knob-label">{this.props.label}</div>}
             </div>
         );
