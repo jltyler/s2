@@ -8,6 +8,46 @@ let audioContext = undefined; // AudioContext instance is created when S2Audio::
 const notePlannerInterval = 100; // Delay between planning notes
 const notePlannerBuffer = .25; // Notes are plannesd this far in advance (in seconds)
 
+const defaultEcho = {
+    delay: 0.2,
+    decay: 0.66,
+};
+
+class Echo {
+    constructor(options = {}) {
+        this.options = Object.assign({}, defaultEcho, options);
+        this.delay = audioContext.createDelay();
+        this.delay.delayTime.value = this.options.delay;
+        this.gain = audioContext.createGain();
+        this.gain.gain.value = this.options.decay;
+        this.delay.connect(this.gain).connect(this.delay);
+    }
+
+    setDelay(delay) {
+        this.options.delay = delay;
+        this.delay.delayTime.value = delay;
+    }
+
+    setDecay(decay) {
+        this.options.decay = decay;
+        this.gain.gain.value = decay;
+    }
+
+    connectSource(node) {
+        node.connect(this.delay);
+    }
+
+    connect(node) {
+        this.gain.connect(node);
+    }
+
+    __connectFrom() {
+        console.log('Echo::__connectFrom');
+        console.log('this', this);
+        console.log('arguments', arguments);
+
+    }
+}
 
 const defaultEnvelope = {
     attack: 0.1,
@@ -35,7 +75,7 @@ const defaultLFO = {
     singular: false
 };
 
-/**==========================================================================
+/** =========================================================================
  * Holds and creates oscillators that are used for connecting to AudioParams.
  * Can receive connections from other LFOs or other connection classes
  */
@@ -176,7 +216,7 @@ const defaultGainEnvelope = {
     release: 2.0,
 };
 
-/**==========================================================================
+/** =========================================================================
  * Stores gain envelope information. Creates GainNodes and schedules changes on the gain AudioParam
  */
 class GainEnvelope {
@@ -245,7 +285,7 @@ const defaultFilterEnvelope = {
     Q: 1
 };
 
-/**==========================================================================
+/** =========================================================================
  * Stores filter frequency envelope options. Creates BiquadFilterNodes and schedules changes on the frequency AudioParam
  */
 class FilterEnvelope {
@@ -331,13 +371,13 @@ const defaultVoiceOptions = {
  */
 const stopOscs = (osc, stopTime = 0) => {
     if (Array.isArray(osc)) {
-        osc.forEach(o => o.stop(stopTime));
+        osc.forEach((o) => o.stop(stopTime));
     } else {
         osc.stop(stopTime);
     }
 };
 
-/**==========================================================================
+/** =========================================================================
  * Holds voice information and creates oscillators
  */
 class Voice {
@@ -453,7 +493,7 @@ class Voice {
         }
     }
 
-    connectParams(pan, gain) {
+    connectParams(pan) {
         if (this.connections.pan) {
             this.connections.pan.connect(pan.pan);
         }
@@ -467,7 +507,7 @@ class Voice {
         const osc = this.playing[id][0];
         const gain = this.playing[id][1];
         const env = this.playing[id][2];
-        // console.log('release gain:',gain);
+
         const releaseTime = env ? gain.release(audioContext.currentTime) : audioContext.currentTime;
         stopOscs(osc, releaseTime);
         delete this.playing[id];
@@ -540,7 +580,7 @@ class Voice {
     }
 }
 
-/**============================================================================
+/** ===========================================================================
  * Uses a sequence to play notes on a Voice
  */
 class NotePlanner {
@@ -551,7 +591,6 @@ class NotePlanner {
      * @param {AudioDestinationNode} destination Final destination of sound signal
      */
     constructor(sequence, voice, destination) {
-        // console.log('New NotePlanner', sequence, voice, audioContext);
         this.voice = voice;
         this.sequence = [...sequence];
         this.destination = destination;
@@ -577,13 +616,11 @@ class NotePlanner {
      * @private
      */
     plan() {
-        // console.log('Planning notes', this.playing);
 
         if (!this.remaining.length) return;
         let note = this.remaining[0];
         let i = 0;
         while (note && note.start + this.startTime < audioContext.currentTime + notePlannerBuffer) {
-            // console.log('Planning note', note.freq, note.start, note.stop);
 
             this.voice.play(note.freq, this.destination, this.startTime + note.start, this.startTime + note.stop);
 
@@ -594,7 +631,6 @@ class NotePlanner {
         console.log('Planned ' + i + ' notes.');
 
         this.remaining.splice(0, i);
-        // console.log('this.playing after splice', this.playing);
 
         if (this.running)
             setTimeout(this.plan, notePlannerInterval);
@@ -605,7 +641,7 @@ class NotePlanner {
     }
 }
 
-/**
+/** ===========================================================================
  * Main audio controller for s2. You must call init() after creating this and before anything else
  */
 class S2Audio {
@@ -621,24 +657,6 @@ class S2Audio {
         // In case these are called from DOM events
         this.init = this.init.bind(this);
         this.stop = this.stop.bind(this);
-        // this.startSequence = this.startSequence.bind(this);
-
-        // this.newVoice = this.newVoice.bind(this);
-        // this.getVoice = this.getVoice.bind(this);
-        // this.getVoices = this.getVoices.bind(this);
-        // this.renameVoice = this.renameVoice.bind(this);
-        // this.removeVoice = this.removeVoice.bind(this);
-
-        // this.newLFO = this.newLFO.bind(this);
-        // this.getLFO = this.getLFO.bind(this);
-        // this.getLFOs = this.getLFOs.bind(this);
-        // this.renameLFO = this.renameLFO.bind(this);
-        // this.removeLFO = this.removeLFO.bind(this);
-
-        // this.getAvailableConnections = this.getAvailableConnections.bind(this);
-        // this.findConnector = this.findConnector.bind(this);
-        // this.addVoiceConnection = this.addVoiceConnection.bind(this);
-        // this.removeVoiceConnection = this.removeVoiceConnection.bind(this);
 
         this.keysOn = this.keysOn.bind(this);
         this.keysOff = this.keysOff.bind(this);
@@ -653,6 +671,15 @@ class S2Audio {
         audioContext = this.ctx = new AudioContext();
 
         // this.LFOtest = new LFO({frequency: 12, amplitude: 5});
+        this.echoTest = new Echo({delay: 0.33, decay: 0.4});
+        this.echoTest.connect(audioContext.destination);
+        this.echoMiddleNode = audioContext.createGain();
+        // this.echoMiddleNode.connect(this.echoTest);
+        this.echoTest.connectSource(this.echoMiddleNode);
+        this.echoMiddleNode.connect(audioContext.destination);
+        // const g = audioContext.createGain();
+        // console.log(g);
+        // g.connect(this.echoTest);
 
         this.initialized = true;
     }
@@ -687,9 +714,10 @@ class S2Audio {
      * @param {string} name Name of the voice
      * @returns {string} Final name of voice
      */
-    newVoice(name='Voice') {
+    newVoice(name = 'Voice') {
         name = this.firstNameAvailable(name);
-        this.voices[name] = new Voice(name, {destination: audioContext.destination});
+        this.voices[name] = new Voice(name, {destination: this.echoMiddleNode});
+        // this.voices[name] = new Voice(name, {destination: audioContext.destination});
         return name;
     }
 
@@ -725,7 +753,7 @@ class S2Audio {
      * @param {string} name Name of the LFO
      * @returns {string} Final name of LFO
      */
-    newLFO(name='LFO') {
+    newLFO(name = 'LFO') {
         name = this.firstNameAvailable(name);
         this.LFOs[name] = new LFO(name);
         return name;
@@ -766,25 +794,18 @@ class S2Audio {
     // User interface information and config functions
     getAvailableConnections(exclude) {
         const c = [];
-        // if (typeof exclude === 'string') exclude = [exclude];
         for (const name in this.voices) {
-            // if (exclude.includes(name)) continue;
             if (name === exclude) continue;
-            const v = this.voices[name]
+            const v = this.voices[name];
             for (const param in v.connections) {
-                // if (v.connections[param] === null) {
-                    c.push(name + '.' + param);
-                // }
+                c.push(name + '.' + param);
             }
         }
         for (const name in this.LFOs) {
-            // if (exclude.includes(name)) continue;
             if (name === exclude) continue;
-            const l = this.LFOs[name]
+            const l = this.LFOs[name];
             for (const param in l.connections) {
-                // if (l.connections[param] === null) {
-                    c.push(name + '.' + param);
-                // }
+                c.push(name + '.' + param);
             }
         }
         return c;
@@ -868,7 +889,7 @@ class S2Audio {
             }).bind(this),
             ((note) => {
                 const voices = this.playing[note];
-                voices.forEach(v => v[0].release(v[1]));
+                voices.forEach((v) => v[0].release(v[1]));
             }).bind(this)
         );
     }
