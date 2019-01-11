@@ -38,12 +38,12 @@ class Oscillators extends Component {
     }
 
     update() {
-        this.setState(s => ({update: s.update + 1}));
+        this.setState((s) => ({update: s.update + 1}));
     }
 
     renderOscillators() {
-        return Object.keys(this.interface.getVoices()).map(name => {
-            return <Oscillator name={name} key={name} interface={this.interface} update={this.update.bind(this)} />
+        return Object.keys(this.interface.getVoices()).map((name) => {
+            return <Oscillator name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
         });
         // const voices = this.interface.getVoices();
         // const jsx = [];
@@ -54,8 +54,8 @@ class Oscillators extends Component {
     }
 
     renderLFOs() {
-        return Object.keys(this.interface.getLFOs()).map(name => {
-            return <LFO name={name} key={name} interface={this.interface} update={this.update.bind(this)} />
+        return Object.keys(this.interface.getLFOs()).map((name) => {
+            return <LFO name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
         });
         // const LFOs = this.interface.getLFOs();
         // const jsx = [];

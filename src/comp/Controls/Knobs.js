@@ -28,12 +28,10 @@ class Knob extends Component {
         while (this.maxAngle > this.minAngle + Math.PI * 2)
             this.maxAngle -= Math.PI * 2;
 
+        // Angle that is centered between max and min (outside the usable range)
         this.angleOfSeperation = this.maxAngle + ((Math.PI * 2) - (this.maxAngle - this.minAngle)) / 2;
         if (this.angleOfSeperation >= Math.PI * 2)
             this.angleOfSeperation -= Math.PI * 2;
-        // this.angleOfSeperation = this.minAngle + (this.maxAngle - this.minAngle) / 2;
-
-        // console.log('Knob', this.minAngle / Math.PI, this.maxAngle / Math.PI, this.angleOfSeperation / Math.PI);
 
         const value = props.value || (this.min + (this.max - this.min) / 2);
         const angle = lerp(this.minAngle, this.maxAngle, alpha(this.min, this.max, value));
@@ -58,8 +56,8 @@ class Knob extends Component {
         const rawAngle = Math.atan2(mouseY - knobY, mouseX - knobX);
         let angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
         let value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
-        if (this.snap) {
-            value = Math.floor((value + this.snap / 2) / this.snap) * this.snap;
+        if (this.props.snap) {
+            value = Math.floor((value + this.props.snap / 2) / this.props.snap) * this.props.snap;
             angle = lerp(this.minAngle, this.maxAngle, alpha(this.min, this.max, value));
         }
         return {angle, value};
@@ -70,7 +68,7 @@ class Knob extends Component {
         const knobCenterX = bounds.x + bounds.width / 2;
         const knobCenterY = bounds.y + bounds.height / 2;
         console.log('press', knobCenterX, knobCenterY);
-        
+
         const onMouseMove = ((e) => {
             const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
             this.setState(o);

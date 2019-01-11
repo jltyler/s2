@@ -8,12 +8,12 @@ const logHandler = function() {
 };
 
 const setVoiceOption = (voice, key, value) => {
-    console.log('setVoiceOption', voice, '\nKey', key,'\nVal' , value);
+    console.log('setVoiceOption', voice, '\nKey', key, '\nVal', value);
     voice.setOption(key, value);
 };
 
 const setEnvelopeOption = (voice, key, value) => {
-    console.log('setEnvelopeOption', voice, '\nKey', key,'\nVal' , value);
+    console.log('setEnvelopeOption', voice, '\nKey', key, '\nVal', value);
     voice.getEnvelope().setOption(key, value);
 };
 
@@ -25,7 +25,7 @@ const Oscillator = (props) => {
             <h3>{props.name}</h3>
             <div className="oscillator-general">
                 <div className="oscillator-general-global">
-                    <VerticalSlider label="Gain" handler={setVoiceOption.bind(null, voice, 'gain')} min={1.0} max={0.0} /> <br />
+                    <VerticalSlider snap={0.05} label="Gain" handler={setVoiceOption.bind(null, voice, 'gain')} min={1.0} max={0.0} /> <br />
                     <Knob label="Pan" handler={setVoiceOption.bind(null, voice, 'pan')} min={-1.0} max={1.0} />
                 </div>
                 <div className="oscillator-general-main">
@@ -48,6 +48,6 @@ const Oscillator = (props) => {
             </div>
         </div>
     );
-}
+};
 
 export default Oscillator;

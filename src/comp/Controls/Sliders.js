@@ -1,6 +1,6 @@
 import React, {Component} from 'react';
 import './Controls.css';
-import {lerp} from '../../Utility';
+import {lerp, alpha} from '../../Utility';
 
 class VerticalSlider extends Component {
     constructor(props) {
@@ -13,25 +13,48 @@ class VerticalSlider extends Component {
         };
     }
 
-    clickHandler(e) {
+    pressHandler(e) {
         const bounds = e.currentTarget.getBoundingClientRect();
-        const position = Math.max(Math.min((e.clientY - 8) - bounds.top, (bounds.bottom - bounds.top) - 14), 0);
+        const verticalRange = (bounds.bottom - bounds.top) - 14;
 
-        const value = lerp(this.min, this.max, position / (bounds.bottom - bounds.top - 14));
-        console.log(position, value);
+        const onMouseMove = (e) => {
+            // const position = Math.max(Math.min((e.clientY - 8) - bounds.top, (bounds.bottom - bounds.top) - 14), 0);
+            // const value = lerp(this.min, this.max, position / (bounds.bottom - bounds.top - 14));
+            let position = Math.max(Math.min((e.clientY - 8) - bounds.top, verticalRange), 0);
+            let value = lerp(this.min, this.max, position / verticalRange);
 
-        if (typeof this.props.handler === 'function')
+            if (this.props.snap) {
+                value = Math.floor(value / this.props.snap + 0.5) * this.props.snap;
+                position = alpha(this.min, this.max, value) * verticalRange;
+            }
+
+            this.setState({position});
+        };
+        document.addEventListener('mousemove', onMouseMove);
+
+        const onMouseUp = (e) => {
+            // const verticalRange = (bounds.bottom - bounds.top) - 14;
+            let position = Math.max(Math.min((e.clientY - 8) - bounds.top, verticalRange), 0);
+            let value = lerp(this.min, this.max, position / verticalRange);
+
+            if (this.props.snap) {
+                value = Math.floor(value / this.props.snap + 0.5) * this.props.snap;
+                position = alpha(this.min, this.max, value) * verticalRange;
+            }
+
+            if (typeof this.props.handler === 'function')
             this.props.handler(value);
 
-        this.setState({
-            value,
-            position,
-        });
+            this.setState({position, value});
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        document.addEventListener('mouseup', onMouseUp);
     }
 
     render() {
         return (
-            <div className="slider-vertical" onClick={this.clickHandler.bind(this)}>
+            <div className="slider-vertical" onMouseDown={this.pressHandler.bind(this)}>
                 <div className="slider-vertical-slot" />
                 <div className="slider-vertical-bar" style={{top: this.state.position}}/>
             </div>

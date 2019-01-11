@@ -62,6 +62,6 @@ const LFO = (props) => {
             </select>
         </div>
     );
-}
+};
 
 export default LFO;
