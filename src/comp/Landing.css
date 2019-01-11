@@ -13,3 +13,21 @@
 .landing-page.hidden {
     bottom: -100%;
 }
+
+.landing-page button {
+    display: block;
+    width: 70%;
+    padding: 15px 0;
+    min-width: 20px;
+    max-width: 200px;
+    background-color: rgb(68, 14, 117);
+    color: rgb(255, 221, 158);
+    border: 2px solid rgb(54, 0, 0);
+    border-radius: 20px;
+    font-size: 28px;
+    margin: 250px auto;
+}
+
+.landing-page button:hover {
+    background-color: rgb(92, 0, 179);
+}

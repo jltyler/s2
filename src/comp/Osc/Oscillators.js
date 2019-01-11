@@ -10,6 +10,7 @@ class Oscillators extends Component {
         this.state = {
             oscillators: [],
             LFOs: [],
+            update: 0,
         };
 
         if (props.interface) {
@@ -36,22 +37,32 @@ class Oscillators extends Component {
         });
     }
 
+    update() {
+        this.setState(s => ({update: s.update + 1}));
+    }
+
     renderOscillators() {
-        const voices = this.interface.getVoices();
-        const jsx = [];
-        for (const name in voices) {
-            jsx.push(<Oscillator name={name} voice={voices[name]} key={name} />);
-        }
-        return jsx;
+        return Object.keys(this.interface.getVoices()).map(name => {
+            return <Oscillator name={name} key={name} interface={this.interface} update={this.update.bind(this)} />
+        });
+        // const voices = this.interface.getVoices();
+        // const jsx = [];
+        // for (const name in voices) {
+        //     jsx.push(<Oscillator name={name} voice={voices[name]} interface={this.interface} update={this.update.bind(this)} key={name} />);
+        // }
+        // return jsx;
     }
 
     renderLFOs() {
-        const LFOs = this.interface.getLFOs();
-        const jsx = [];
-        for (const name in LFOs) {
-            jsx.push(<LFO name={name} lfo={LFOs[name]} key={name} interface={this.interface} />);
-        }
-        return jsx;
+        return Object.keys(this.interface.getLFOs()).map(name => {
+            return <LFO name={name} key={name} interface={this.interface} update={this.update.bind(this)} />
+        });
+        // const LFOs = this.interface.getLFOs();
+        // const jsx = [];
+        // for (const name in LFOs) {
+        //     jsx.push(<LFO name={name} lfo={LFOs[name]} key={name} interface={this.interface} update={this.update.bind(this)} />);
+        // }
+        // return jsx;
     }
 
     render() {
