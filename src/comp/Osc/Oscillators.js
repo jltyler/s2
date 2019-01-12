@@ -10,6 +10,7 @@ class Oscillators extends Component {
         this.state = {
             oscillators: [],
             LFOs: [],
+            envelopes: [],
             update: 0,
         };
 
@@ -19,6 +20,7 @@ class Oscillators extends Component {
 
         this.addOscillator = this.addOscillator.bind(this);
         this.addLFO = this.addLFO.bind(this);
+        this.addEnvelope = this.addEnvelope.bind(this);
     }
 
     addOscillator() {
@@ -34,6 +36,14 @@ class Oscillators extends Component {
             const LFOs = [...prevState.LFOs];
             LFOs.push(this.interface.newLFO());
             return {LFOs};
+        });
+    }
+
+    addEnvelope () {
+        this.setState((prevState) => {
+            const envelopes = [...prevState.envelopes];
+            envelopes.push(this.interface.newEnvelope());
+            return {envelopes};
         });
     }
 
@@ -71,7 +81,8 @@ class Oscillators extends Component {
                 {this.renderOscillators()}
                 {this.renderLFOs()}
                 <div className="add-oscillator" onClick={this.addOscillator}>+</div>
-                <div className="add-oscillator" onClick={this.addLFO}>+</div>
+                <div className="add-lfo" onClick={this.addLFO}>+</div>
+                <div className="add-envelope" onClick={this.addEnvelope}>+</div>
             </div>
         );
     }

@@ -53,18 +53,63 @@ const defaultEnvelope = {
     attack: 0.1,
     decay: 0.2,
     sustain: 1.0,
+    length: 1.0, // sustain length if useRelease
     release: 2.0,
-    singular: false
+    scale: 1.0, // maximum value
+    base: 0.0, // minimum value
+    useRelease: false
 };
 
 class Envelope {
     constructor(options = {}) {
         if (!audioContext) console.error('Envelope::Envelope(): Invalid audioContext!');
         this.options = Object.assign({}, defaultEnvelope, options);
+
+        // Used only if useRelease is true
+        // this.getNewId = newIdGenerator();
+        // this.playing = {};
     }
 
     connect(destination) {
-        const gain = audioContext.createGain();
+        const startTime = audioContext.currentTime;
+        const cs = audioContext.createConstantSource();
+        const o = this.options;
+        cs.offset.setValueAtTime(o.base, startTime);
+        cs.offset.linearRampToValueAtTime(o.scale, startTime + o.attack);
+        cs.offset.linearRampToValueAtTime(o.scale * o.sustain, startTime + o.attack + o.decay);
+        if (o.useRelease) {
+            this.attachRelease(cs);
+        } else {
+            cs.offset.linearRampToValueAtTime(o.scale * o.sustain, startTime + o.attack + o.decay + o.length);
+            cs.offset.linearRampToValueAtTime(o.base, startTime + o.attack + o.decay + o.length + o.release);
+        }
+        cs.connect(destination);
+        // cs.start();
+        return cs;
+    }
+
+    /**
+     * Attaches a release function that recieves a time to schedule the release envelope settings.
+     * @param {GainNode} cs Node to attach the function to
+     */
+    attachRelease(cs) {
+        cs.release = ((stopTime) => {
+            cs.offset.cancelScheduledValues(stopTime);
+            cs.offset.setValueAtTime(cs.offset.value, stopTime);
+            stopTime += this.options.release;
+            cs.offset.linearRampToValueAtTime(this.options.base, stopTime);
+            return stopTime;
+        }).bind(this);
+    }
+
+    setOption(key, value) {
+        if (key in this.options) {
+            this.options[key] = value;
+        }
+    }
+
+    getOption(key) {
+        return this.options[key];
     }
 }
 
@@ -650,6 +695,7 @@ class S2Audio {
         this.keysBound = false; // Are keyboard events bound to play notes?
         this.voices = {}; // Holds Voice references with named keys
         this.LFOs = {}; // LFO references
+        this.envelopes = {}; // Envelope references
         this.playing = {}; // Dict for current notes being played (by keyboard)
         this.paramConnectionsByParam = {}; // Current connected params
         this.paramConnectionsBySource = {}; // I'm desperate to think of another way of doing this
@@ -698,6 +744,7 @@ class S2Audio {
     isNameAvailable(name) {
         if (name in this.voices) return false;
         else if (name in this.LFOs) return false;
+        else if (name in this.envelopes) return false;
         else return true;
     }
 
@@ -785,9 +832,23 @@ class S2Audio {
         if (name in this.LFOs) delete this.LFOs[name];
     }
 
+    newEnvelope(name = 'Envelope') {
+        name = this.firstNameAvailable(name);
+        this.envelopes[name] = new Envelope({attack: 0.2, decay: 0.2, sustain: 0.5, scale: 1000});
+        // TEMP
+        const a = Object.keys(this.voices);
+        if (a.length) {
+            const vName = a[0];
+            this.addConnection(vName, 'detune', name);
+        }
+        // TEMP END
+        return name;
+    }
+
     getFromName(name) {
         if (name in this.voices) return this.voices[name];
         else if (name in this.LFOs) return this.LFOs[name];
+        else if (name in this.envelopes) return this.envelopes[name];
         else return null;
     }
 
@@ -814,9 +875,17 @@ class S2Audio {
     findConnector(name) {
         if (name in this.LFOs) {
             return this.LFOs[name];
+        } else if (name in this.envelopes) {
+            return this.envelopes[name];
         } else return null;
     }
 
+    /**
+     * Registers a connection from source to destination's paramter
+     * @param {string} name Destination name
+     * @param {string} param Destination parameter to affect
+     * @param {string} sourceName Source name
+     */
     addConnection(name, param, sourceName) {
         console.log('addConnection', name, param, sourceName);
 
