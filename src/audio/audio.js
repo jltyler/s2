@@ -732,6 +732,10 @@ class S2Audio {
         releaseKeys();
     }
 
+    /**
+     * Get reference to s2 node from name. Returns null if name isn't found
+     * @param {string} name Name of node
+     */
     getFromName(name) {
         if (name in this.voices) return this.voices[name];
         else if (name in this.LFOs) return this.LFOs[name];
@@ -739,9 +743,14 @@ class S2Audio {
         else return null;
     }
 
-    firstNameAvailable(name) {
+    /**
+     * Returns unique name by appending to name string repeatedly
+     * @param {string} name Starting name
+     * @param {string} append String to append
+     */
+    firstNameAvailable(name, append = '+') {
         while(this.getFromName(name)) {
-            name = name + '+';
+            name = '' + name + append;
         }
         return name;
     }

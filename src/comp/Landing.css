@@ -14,7 +14,7 @@
     bottom: -100%;
 }
 
-.landing-page button {
+.start-button {
     display: block;
     width: 70%;
     padding: 15px 0;
@@ -28,6 +28,6 @@
     margin: 250px auto;
 }
 
-.landing-page button:hover {
+.start-button:hover {
     background-color: rgb(92, 0, 179);
 }

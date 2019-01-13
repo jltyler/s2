@@ -40,7 +40,8 @@ class Knob extends Component {
 
         this.state = {
             value,
-            angle
+            angle,
+            editing: false
         };
     }
 
@@ -63,33 +64,66 @@ class Knob extends Component {
         return {angle, value};
     }
 
-    pressHandler(e) {
-        const bounds = e.currentTarget.getBoundingClientRect();
-        const knobCenterX = bounds.x + bounds.width / 2;
-        const knobCenterY = bounds.y + bounds.height / 2;
-
-        const onMouseMove = ((e) => {
-            const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
-            this.setState(o);
-        }).bind(this);
-        document.addEventListener('mousemove', onMouseMove);
-
-        const onMouseUp = ((e) => {
-            const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
-            if (typeof this.props.handler === 'function')
-                this.props.handler(o.value);
-            this.setState(o);
-            document.removeEventListener('mouseup', onMouseUp);
-            document.removeEventListener('mousemove', onMouseMove);
-        }).bind(this);
-        document.addEventListener('mouseup', onMouseUp);
+    startEditing(e) {
+        if (this.state.editing) return;
+        this.setState({editing: true});
     }
+
+    stopEditing(e) {
+        this.setState({editing: false});
+    }
+
+    pressHandler(e) {
+        console.log(e.button);
+
+        if (e.button === 0) {
+            // Left click
+            const bounds = e.currentTarget.getBoundingClientRect();
+            const knobCenterX = bounds.x + bounds.width / 2;
+            const knobCenterY = bounds.y + bounds.height / 2;
+
+            const onMouseMove = ((e) => {
+                this.setState(this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY));
+            })//.bind(this);
+            document.addEventListener('mousemove', onMouseMove);
+
+            const onMouseUp = ((e) => {
+                const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
+                if (typeof this.props.handler === 'function')
+                    this.props.handler(o.value);
+                this.setState(o);
+                document.removeEventListener('mouseup', onMouseUp);
+                document.removeEventListener('mousemove', onMouseMove);
+            })//.bind(this);
+            document.addEventListener('mouseup', onMouseUp);
+        } else if (e.button === 1) {
+            // Middle click
+            e.preventDefault();
+            if (typeof this.props.defaultValue === 'number') this.setState({value: this.props.defaultValue});
+        } else if (e.button === 2) {
+            // Right click
+            e.preventDefault();
+            e.stopPropagation();
+            this.startEditing();
+        }
+
+    }
+
+
 
     render() {
         return (
-            <div className="knob-container">
+            <div className="knob-container" onContextMenu={()=>false}>
+                <div className="knob-value-label"></div>
                 <div className="knob" onMouseDown={this.pressHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
                 {this.props.label && <div className="knob-label">{this.props.label}</div>}
+                {this.state.editing && <div className="knob-edit" style={{top: 0}}>
+                    <input type="number" placeholder="value"></input>
+                    <input type="number" placeholder="min"></input>
+                    <input type="number" placeholder="max"></input>
+                    <input type="number" placeholder="snap"></input>
+                    <button onClick={this.stopEditing.bind(this)}>X</button>
+                </div>}
             </div>
         );
     }

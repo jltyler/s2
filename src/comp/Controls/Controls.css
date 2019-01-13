@@ -39,6 +39,26 @@
     user-select: none;
 }
 
+.knob-label {
+    user-select: none;
+    font-size: 12px;
+    text-align: center;
+    padding: 0;
+    margin: 0;
+}
+
+.knob-edit {
+    position: absolute;
+    z-index: 10;
+}
+
+.knob-edit input {
+    display: block;
+    width: 50px;
+    height: 8px;
+    margin: 0;
+}
+
 .switch-container {
     display: inline-block;
     vertical-align: top;
