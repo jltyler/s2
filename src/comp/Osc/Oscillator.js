@@ -8,18 +8,15 @@ const logHandler = function() {
 };
 
 const setVoiceOption = (voice, key, value) => {
-    console.log('setVoiceOption', voice, '\nKey', key, '\nVal', value);
     voice.setOption(key, value);
 };
 
 const setEnvelopeOption = (voice, key, value) => {
-    console.log('setEnvelopeOption', voice, '\nKey', key, '\nVal', value);
     voice.getEnvelope().setOption(key, value);
 };
 
 const Oscillator = (props) => {
     const voice = props.interface.getVoice(props.name);
-    console.log('osc render', props.name, voice);
     return (
         <div className="oscillator">
             <h3>{props.name}</h3>

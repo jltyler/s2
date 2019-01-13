@@ -7,12 +7,10 @@ const logHandler = function() {
 };
 
 const setFrequency = (LFO, freq) => {
-    console.log(LFO, freq);
     LFO.setFrequency(freq);
 };
 
 const setAmplitude = (LFO, amp) => {
-    console.log(LFO, amp);
     LFO.setAmplitude(amp);
 };
 
@@ -28,16 +26,6 @@ const setConnection = (LFO, iface, update, e) => {
         iface.addConnection(split[0], split[1], LFO.name);
     }
     update();
-
-    // else if (existing) {
-    //     iface.removeConnectionBySource(LFO.name);
-    // }
-    // if (connection === 'none') LFO = null;
-
-    // console.log(LFO, connection);
-    // const split = connection.split('.');
-    // console.log(split);
-    // iface.addConnection(split[0], split[1], LFO.name);
 };
 
 const getConnection = (iface, LFO) => {
@@ -48,7 +36,6 @@ const getConnection = (iface, LFO) => {
 
 const LFO = (props) => {
     const lfo = props.interface.getLFO(props.name);
-    console.log('lfo render', props.name, lfo);
     return (
         <div className="LFO">
         <h2>{props.name}</h2>
@@ -57,8 +44,8 @@ const LFO = (props) => {
             Waveform
             Destination
             <select onChange={setConnection.bind(null, lfo, props.interface, props.update)} value={getConnection(props.interface, lfo)} >
-                <option value="none">No connection</option>
-                {props.interface.getAvailableConnections(props.name).map((c) => <option value={c}>{c}</option>)}
+                <option key="none" value="none">No connection</option>
+                {props.interface.getAvailableConnections(props.name).map((c, i) => <option key={i} value={c}>{c}</option>)}
             </select>
         </div>
     );

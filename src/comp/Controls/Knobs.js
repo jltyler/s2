@@ -67,7 +67,6 @@ class Knob extends Component {
         const bounds = e.currentTarget.getBoundingClientRect();
         const knobCenterX = bounds.x + bounds.width / 2;
         const knobCenterY = bounds.y + bounds.height / 2;
-        console.log('press', knobCenterX, knobCenterY);
 
         const onMouseMove = ((e) => {
             const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
@@ -76,7 +75,6 @@ class Knob extends Component {
         document.addEventListener('mousemove', onMouseMove);
 
         const onMouseUp = ((e) => {
-            console.log('release', this.state.angle, this.state.value);
             const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
             if (typeof this.props.handler === 'function')
                 this.props.handler(o.value);

@@ -53,7 +53,7 @@ const defaultEnvelope = {
     attack: 0.1,
     decay: 0.2,
     sustain: 1.0,
-    length: 1.0, // sustain length if useRelease
+    length: 1.0, // sustain length if not useRelease
     release: 2.0,
     scale: 1.0, // maximum value
     base: 0.0, // minimum value
@@ -61,13 +61,10 @@ const defaultEnvelope = {
 };
 
 class Envelope {
-    constructor(options = {}) {
+    constructor(name, options = {}) {
         if (!audioContext) console.error('Envelope::Envelope(): Invalid audioContext!');
-        this.options = Object.assign({}, defaultEnvelope, options);
-
-        // Used only if useRelease is true
-        // this.getNewId = newIdGenerator();
-        // this.playing = {};
+        this.name = name;
+        this.options = {...defaultEnvelope, ...options};
     }
 
     connect(destination) {
@@ -75,16 +72,16 @@ class Envelope {
         const cs = audioContext.createConstantSource();
         const o = this.options;
         cs.offset.setValueAtTime(o.base, startTime);
-        cs.offset.linearRampToValueAtTime(o.scale, startTime + o.attack);
-        cs.offset.linearRampToValueAtTime(o.scale * o.sustain, startTime + o.attack + o.decay);
+        cs.offset.linearRampToValueAtTime(o.base + o.scale, startTime + o.attack);
+        cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay);
         if (o.useRelease) {
             this.attachRelease(cs);
         } else {
-            cs.offset.linearRampToValueAtTime(o.scale * o.sustain, startTime + o.attack + o.decay + o.length);
+            cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay + o.length);
             cs.offset.linearRampToValueAtTime(o.base, startTime + o.attack + o.decay + o.length + o.release);
         }
         cs.connect(destination);
-        // cs.start();
+        cs.start();
         return cs;
     }
 
@@ -244,7 +241,7 @@ class LFO {
     }
 
     getConnections() {
-        return this.connections[param];
+        return this.connections;
     }
 
     removeConnection(param) {
@@ -403,7 +400,7 @@ const defaultVoiceOptions = {
     pan: 0.0,
     unison: 1,
     unisonSpread: 1,
-    destination: undefined,
+    destination: null,
     useEnvelope: false,
     attack: 0.1,
     decay: 0.1,
@@ -428,15 +425,21 @@ const stopOscs = (osc, stopTime = 0) => {
 class Voice {
     /**
      * Create a new voice
-     * @param {GainEnvelope} gainEnvelope GainEnvelope instance to use
-     * @param {FilterEnvelope} filterEnvelope FilterEnvelope instance to use
+     * @param {string} name Name of the voice
      * @param {Object} options Voice options object
      * @param {string} options.waveform String representing waveform type. Default: 'sawtooth'
      * @param {number} options.octave Increase or decrease by octaves. Default: 0
      * @param {number} options.detune Detune measured in semitones. Default: 0
+     * @param {number} options.gain Gain of voice. Default: 1.0
      * @param {number} options.pan Pan to left or right. Default: 0
      * @param {number} options.unison How many seperate oscillators to use for unison. Default: 1
-     * @param {number} options.unisonSpread How far the oscillator frequencies should be spread. Default: 1 semitone
+     * @param {number} options.unisonSpread How far the oscillator frequencies should be spread in semitones. Default: 1
+     * @param {number} options.destination Where to output noise to. Default: null
+     * @param {number} options.useEnvelope Use the envelope for the gain? Default: false
+     * @param {number} options.attack Attack length. Default: 0.1
+     * @param {number} options.decay Decay length. Default: 0.1
+     * @param {number} options.sustain Sustain level. Default: 1.0
+     * @param {number} options.release Release length. Default: 1.5
      */
     constructor(name, options = {}) {
         if (!audioContext) console.error('Voice::Voice(): Invalid audioContext!');
@@ -491,21 +494,21 @@ class Voice {
      * @returns {number} Internal id for note. An id must be provided when calling release or stop
      */
     play(frequency, startTime, stopTime = 0) {
-
-        const gain = this.options.useEnvelope ? this.gainEnv.newEnvelope(startTime) : audioContext.createGain();
+        const opt = this.options;
+        const gain = opt.useEnvelope ? this.gainEnv.newEnvelope(startTime) : audioContext.createGain();
         const panner = audioContext.createStereoPanner();
-        panner.pan.value = this.options.pan;
+        panner.pan.value = opt.pan;
         const compressor = audioContext.createDynamicsCompressor();
 
         let oscs = null;
 
-        const actualFrequency = frequency * Math.pow(2, this.options.octave) * Math.pow(ALPHA, this.options.detune);
+        const actualFrequency = frequency * Math.pow(2, opt.octave) * Math.pow(ALPHA, opt.detune);
 
-        if (this.options.unison > 1) {
+        if (opt.unison > 1) {
             oscs = [];
-            const minVal = this.options.unisonSpread / 2 * -1;
-            const inc = this.options.unisonSpread / (this.options.unison - 1);
-            for (let i = 0; i < this.options.unison; ++i) {
+            const minVal = opt.unisonSpread / 2 * -1;
+            const inc = opt.unisonSpread / (opt.unison - 1);
+            for (let i = 0; i < opt.unison; ++i) {
                 const o = this.newOscillator(actualFrequency * Math.pow(ALPHA, minVal + inc * i), panner, startTime);
                 oscs.push(o);
             }
@@ -514,16 +517,16 @@ class Voice {
         }
 
         const finalGain = audioContext.createGain();
-        finalGain.gain.value = this.options.gain;
+        finalGain.gain.value = opt.gain;
 
-        panner.connect(gain).connect(compressor).connect(finalGain).connect(this.options.destination || audioContext.destination);
+        panner.connect(gain).connect(compressor).connect(finalGain).connect(opt.destination || audioContext.destination);
         this.connectParams(panner, gain);
 
         const id = this.getOscId();
-        this.playing[id] = [oscs, gain, this.options.useEnvelope];
+        this.playing[id] = [oscs, gain, opt.useEnvelope];
 
         if (stopTime) {
-            const releaseTime = this.options.useEnvelope ? gain.release(stopTime) + 0.01 : stopTime;
+            const releaseTime = opt.useEnvelope ? gain.release(stopTime) + 0.01 : stopTime;
             stopOscs(oscs, releaseTime);
             setTimeout(() => delete this.playing[id], (releaseTime + 1) * 1000);
         }
@@ -601,7 +604,7 @@ class Voice {
     }
 
     getConnections() {
-        return this.connections[param];
+        return this.connections;
     }
 
     removeConnection(param) {
@@ -715,18 +718,6 @@ class S2Audio {
     init() {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         audioContext = this.ctx = new AudioContext();
-
-        // this.LFOtest = new LFO({frequency: 12, amplitude: 5});
-        this.echoTest = new Echo({delay: 0.33, decay: 0.4});
-        this.echoTest.connect(audioContext.destination);
-        this.echoMiddleNode = audioContext.createGain();
-        // this.echoMiddleNode.connect(this.echoTest);
-        this.echoTest.connectSource(this.echoMiddleNode);
-        this.echoMiddleNode.connect(audioContext.destination);
-        // const g = audioContext.createGain();
-        // console.log(g);
-        // g.connect(this.echoTest);
-
         this.initialized = true;
     }
 
@@ -741,15 +732,15 @@ class S2Audio {
         releaseKeys();
     }
 
-    isNameAvailable(name) {
-        if (name in this.voices) return false;
-        else if (name in this.LFOs) return false;
-        else if (name in this.envelopes) return false;
-        else return true;
+    getFromName(name) {
+        if (name in this.voices) return this.voices[name];
+        else if (name in this.LFOs) return this.LFOs[name];
+        else if (name in this.envelopes) return this.envelopes[name];
+        else return null;
     }
 
     firstNameAvailable(name) {
-        while(!this.isNameAvailable(name)) {
+        while(this.getFromName(name)) {
             name = name + '+';
         }
         return name;
@@ -832,52 +823,60 @@ class S2Audio {
         if (name in this.LFOs) delete this.LFOs[name];
     }
 
+    /**
+     * Create a new named Envelope and store it in this.envelopes.
+     * If a name already exists the name will be appended with a '+'
+     * @param {string} name Name of the Envelope
+     * @returns {string} Final name of Envelope
+     */
     newEnvelope(name = 'Envelope') {
         name = this.firstNameAvailable(name);
-        this.envelopes[name] = new Envelope({attack: 0.2, decay: 0.2, sustain: 0.5, scale: 1000});
-        // TEMP
-        const a = Object.keys(this.voices);
-        if (a.length) {
-            const vName = a[0];
-            this.addConnection(vName, 'detune', name);
-        }
-        // TEMP END
+        this.envelopes[name] = new Envelope(name, {attack: 0.2, decay: 0.2, sustain: 0.1, length: 0.5, scale: 1000});
         return name;
     }
 
-    getFromName(name) {
-        if (name in this.voices) return this.voices[name];
-        else if (name in this.LFOs) return this.LFOs[name];
-        else if (name in this.envelopes) return this.envelopes[name];
-        else return null;
+    /**
+     * Get Envelope reference from name (if it exists)
+     * @param {string} name Name of Envelope
+     * @returns {Envelope} Envelope object reference
+     */
+    getEnvelope(name) {
+        if (name in this.envelopes) return this.envelopes[name];
+    }
+
+    getEnvelopes() {
+        return this.envelopes;
+    }
+
+    renameEnvelope(name, newName) {
+        if (name in this.envelopes) {
+            newName = this.firstNameAvailable(newName);
+            this.envelopes[newName] = this.envelopes[name];
+            delete this.envelopes[name];
+        }
+        return newName;
+    }
+
+    removeEnvelope(name) {
+        if (name in this.envelopes) delete this.envelopes[name];
     }
 
     // User interface information and config functions
+    /**
+     * Return an array of strings representing currently available connection receivers
+     * @param {string} exclude Name to exclude
+     */
     getAvailableConnections(exclude) {
         const c = [];
-        for (const name in this.voices) {
+        const combo = [...Object.keys(this.voices), ...Object.keys(this.LFOs)];
+        for (const name of combo) {
             if (name === exclude) continue;
-            const v = this.voices[name];
-            for (const param in v.connections) {
-                c.push(name + '.' + param);
-            }
-        }
-        for (const name in this.LFOs) {
-            if (name === exclude) continue;
-            const l = this.LFOs[name];
-            for (const param in l.connections) {
+            const connections = this.getFromName(name).getConnections();
+            for (const param in connections) {
                 c.push(name + '.' + param);
             }
         }
         return c;
-    }
-
-    findConnector(name) {
-        if (name in this.LFOs) {
-            return this.LFOs[name];
-        } else if (name in this.envelopes) {
-            return this.envelopes[name];
-        } else return null;
     }
 
     /**
@@ -888,10 +887,7 @@ class S2Audio {
      */
     addConnection(name, param, sourceName) {
         console.log('addConnection', name, param, sourceName);
-
-        // const receiver = this.getConnectionByParam(name, param);
         if (this.getConnectionByParam(name, param)) this.removeConnectionByParam(name, param);
-        // const source = this.getConnectionBySource(sourceName);
         if (this.getConnectionBySource(sourceName)) this.removeConnectionBySource(sourceName);
         const source = this.getFromName(sourceName);
         const receiver = this.getFromName(name);
@@ -899,8 +895,8 @@ class S2Audio {
             if (receiver.addConnection(param, source)) {
                 this.paramConnectionsByParam[name + '.' + param] = sourceName;
                 this.paramConnectionsBySource[sourceName] = {name, param};
-            }
-        }
+            } else console.warn('Failed connection: Rejected by receiver!', receiver);
+        } else console.warn('Failed connection: Invalid reference!', source, receiver);
     }
 
     getConnectionsByParam() {
@@ -925,7 +921,7 @@ class S2Audio {
     }
 
     removeConnectionByParam(name, param) {
-        console.log('removing connection', name, param);
+        console.log('removeConnectionByParam', name, param);
         const joined = name + '.' + param;
         if (joined in this.paramConnectionsByParam) {
             this.getFromName(name).removeConnection(param);
@@ -935,7 +931,7 @@ class S2Audio {
     }
 
     removeConnectionBySource(sourceName) {
-        console.log('removing connection', sourceName);
+        console.log('removeConnectionBySource', sourceName);
         if (sourceName in this.paramConnectionsBySource) {
             const r = this.paramConnectionsBySource[sourceName];
             this.getFromName(r.name).removeConnection(r.param);

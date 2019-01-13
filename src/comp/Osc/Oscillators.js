@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import Oscillator from './Oscillator';
 import LFO from './LFO';
+import Envelope from './Envelope';
 import './Oscillators.css';
 
 class Oscillators extends Component {
@@ -55,24 +56,18 @@ class Oscillators extends Component {
         return Object.keys(this.interface.getVoices()).map((name) => {
             return <Oscillator name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
         });
-        // const voices = this.interface.getVoices();
-        // const jsx = [];
-        // for (const name in voices) {
-        //     jsx.push(<Oscillator name={name} voice={voices[name]} interface={this.interface} update={this.update.bind(this)} key={name} />);
-        // }
-        // return jsx;
     }
 
     renderLFOs() {
         return Object.keys(this.interface.getLFOs()).map((name) => {
             return <LFO name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
         });
-        // const LFOs = this.interface.getLFOs();
-        // const jsx = [];
-        // for (const name in LFOs) {
-        //     jsx.push(<LFO name={name} lfo={LFOs[name]} key={name} interface={this.interface} update={this.update.bind(this)} />);
-        // }
-        // return jsx;
+    }
+
+    renderEnvelopes() {
+        return Object.keys(this.interface.getEnvelopes()).map((name) => {
+            return <Envelope name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
+        });
     }
 
     render() {
@@ -80,6 +75,7 @@ class Oscillators extends Component {
             <div className="oscillators">
                 {this.renderOscillators()}
                 {this.renderLFOs()}
+                {this.renderEnvelopes()}
                 <div className="add-oscillator" onClick={this.addOscillator}>+</div>
                 <div className="add-lfo" onClick={this.addLFO}>+</div>
                 <div className="add-envelope" onClick={this.addEnvelope}>+</div>
