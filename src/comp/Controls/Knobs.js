@@ -38,10 +38,22 @@ class Knob extends Component {
 
         this.snap = props.snap;
 
+        const diff = Math.abs(this.max - this.min);
+        if (diff >= 1000) {
+            this.precision = 0;
+        } else if (diff >= 100) {
+            this.precision = 1;
+        } else if (diff >= 10) {
+            this.precision = 2;
+        } else {
+            this.precision = 3;
+        }
+
         this.state = {
             value,
             angle,
-            editing: false
+            editing: false,
+            showValue: false,
         };
     }
 
@@ -89,6 +101,7 @@ class Knob extends Component {
 
             const onMouseUp = ((e) => {
                 const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
+                o.showValue = false;
                 if (typeof this.props.handler === 'function')
                     this.props.handler(o.value);
                 this.setState(o);
@@ -96,6 +109,8 @@ class Knob extends Component {
                 document.removeEventListener('mousemove', onMouseMove);
             })//.bind(this);
             document.addEventListener('mouseup', onMouseUp);
+
+            this.setState({showValue: true});
         } else if (e.button === 1) {
             // Middle click
             e.preventDefault();
@@ -114,7 +129,7 @@ class Knob extends Component {
     render() {
         return (
             <div className="knob-container" onContextMenu={()=>false}>
-                <div className="knob-value-label"></div>
+                {this.state.showValue && <div className="knob-value-label">{this.state.value.toFixed(this.precision)}</div>}
                 <div className="knob" onMouseDown={this.pressHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
                 {this.props.label && <div className="knob-label">{this.props.label}</div>}
                 {this.state.editing && <div className="knob-edit" style={{top: 0}}>
