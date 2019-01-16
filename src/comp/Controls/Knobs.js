@@ -65,13 +65,17 @@ class Knob extends Component {
         return rawAngle;
     }
 
+    getAngleFromValue(value) {
+        return lerp(this.minAngle, this.maxAngle, alpha(this.min, this.max, value));
+    }
+
     getAngleValue(knobX, knobY, mouseX, mouseY) {
         const rawAngle = Math.atan2(mouseY - knobY, mouseX - knobX);
         let angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
         let value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
         if (this.props.snap) {
             value = Math.floor((value + this.props.snap / 2) / this.props.snap) * this.props.snap;
-            angle = lerp(this.minAngle, this.maxAngle, alpha(this.min, this.max, value));
+            angle = this.getAngleFromValue(value);
         }
         return {angle, value};
     }
@@ -89,14 +93,14 @@ class Knob extends Component {
         console.log(e.button);
 
         if (e.button === 0) {
-            // Left click
+            // Left click to use knob
             const bounds = e.currentTarget.getBoundingClientRect();
             const knobCenterX = bounds.x + bounds.width / 2;
             const knobCenterY = bounds.y + bounds.height / 2;
 
             const onMouseMove = ((e) => {
                 this.setState(this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY));
-            })//.bind(this);
+            });
             document.addEventListener('mousemove', onMouseMove);
 
             const onMouseUp = ((e) => {
@@ -107,16 +111,20 @@ class Knob extends Component {
                 this.setState(o);
                 document.removeEventListener('mouseup', onMouseUp);
                 document.removeEventListener('mousemove', onMouseMove);
-            })//.bind(this);
+            });
             document.addEventListener('mouseup', onMouseUp);
 
             this.setState({showValue: true});
         } else if (e.button === 1) {
-            // Middle click
+            // Middle click reset to default
             e.preventDefault();
-            if (typeof this.props.defaultValue === 'number') this.setState({value: this.props.defaultValue});
+            if (typeof this.props.defaultValue === 'number')
+                this.setState({
+                    value: this.props.defaultValue,
+                    angle: this.getAngleFromValue(this.props.defaultValue)
+                });
         } else if (e.button === 2) {
-            // Right click
+            // Right click to edit knob values and limits
             e.preventDefault();
             e.stopPropagation();
             this.startEditing();
