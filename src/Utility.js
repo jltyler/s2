@@ -8,7 +8,7 @@
 const lerp = (min, max, scale) => min + scale * (max - min);
 
 /**
- * Returns alpha (scalar) value from minimum, maximum, and provided value. Essentially the inverse of lerp
+ * Returns alpha (scalar) value from minimum, maximum, and provided value. Essentially the inverse of linear interpolation
  * @param {number} min Minimum value
  * @param {number} max Maximum value
  * @param {number} value Value to use

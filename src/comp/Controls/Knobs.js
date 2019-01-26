@@ -38,15 +38,19 @@ class Knob extends Component {
 
         this.snap = props.snap;
 
-        const diff = Math.abs(this.max - this.min);
-        if (diff >= 1000) {
-            this.precision = 0;
-        } else if (diff >= 100) {
-            this.precision = 1;
-        } else if (diff >= 10) {
-            this.precision = 2;
+        if (typeof props.precision === 'number') {
+            this.precision = props.precision;
         } else {
-            this.precision = 3;
+            const diff = Math.abs(this.max - this.min);
+            if (diff >= 1000) {
+                this.precision = 0;
+            } else if (diff >= 100) {
+                this.precision = 1;
+            } else if (diff >= 10) {
+                this.precision = 2;
+            } else {
+                this.precision = 3;
+            }
         }
 
         this.state = {
@@ -69,12 +73,16 @@ class Knob extends Component {
         return lerp(this.minAngle, this.maxAngle, alpha(this.min, this.max, value));
     }
 
+    getSnappedValue(value) {
+        return Math.floor((value + this.snap / 2) / this.snap) * this.snap;
+    }
+
     getAngleValue(knobX, knobY, mouseX, mouseY) {
         const rawAngle = Math.atan2(mouseY - knobY, mouseX - knobX);
         let angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
         let value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
-        if (this.props.snap) {
-            value = Math.floor((value + this.props.snap / 2) / this.props.snap) * this.props.snap;
+        if (this.snap) {
+            value = this.getSnappedValue(value);
             angle = this.getAngleFromValue(value);
         }
         return {angle, value};
@@ -86,12 +94,18 @@ class Knob extends Component {
     }
 
     stopEditing(e) {
-        this.setState({editing: false});
+        this.setState((s) => {
+            let value = s.value;
+            if (this.snap) value = this.getSnappedValue(s.value);
+            return {
+                value,
+                angle: this.getAngleFromValue(value),
+                editing: false
+            };
+        });
     }
 
     pressHandler(e) {
-        console.log(e.button);
-
         if (e.button === 0) {
             // Left click to use knob
             const bounds = e.currentTarget.getBoundingClientRect();
@@ -118,11 +132,14 @@ class Knob extends Component {
         } else if (e.button === 1) {
             // Middle click reset to default
             e.preventDefault();
-            if (typeof this.props.defaultValue === 'number')
+            if (typeof this.props.defaultValue === 'number') {
+                if (typeof this.props.handler === 'function')
+                    this.props.handler(this.props.defaultValue);
                 this.setState({
                     value: this.props.defaultValue,
                     angle: this.getAngleFromValue(this.props.defaultValue)
                 });
+            }
         } else if (e.button === 2) {
             // Right click to edit knob values and limits
             e.preventDefault();
@@ -132,7 +149,34 @@ class Knob extends Component {
 
     }
 
+    editValue(e) {
+        if (e.target.value) {
+            const value = Math.min(Math.max(this.min, parseFloat(e.target.value)), this.max);
+            if (typeof this.props.handler === 'function')
+                    this.props.handler(value);
+            this.setState({value});
+        }
+    }
 
+    editMin(e) {
+        if (e.target.value) {
+            this.min = parseFloat(e.target.value);
+        }
+    }
+
+    editMax(e) {
+        if (e.target.value) {
+            this.max = parseFloat(e.target.value);
+        }
+    }
+
+    editSnap(e) {
+        if (e.target.value) {
+            const raw = parseFloat(e.target.value);
+            if (raw <= 0) this.snap = 0;
+            else this.snap = raw;
+        }
+    }
 
     render() {
         return (
@@ -141,11 +185,11 @@ class Knob extends Component {
                 <div className="knob" onMouseDown={this.pressHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
                 {this.props.label && <div className="knob-label">{this.props.label}</div>}
                 {this.state.editing && <div className="knob-edit" style={{top: 0}}>
-                    <input type="number" placeholder="value"></input>
-                    <input type="number" placeholder="min"></input>
-                    <input type="number" placeholder="max"></input>
-                    <input type="number" placeholder="snap"></input>
-                    <button onClick={this.stopEditing.bind(this)}>X</button>
+                    <input type="number" placeholder="value" onBlur={this.editValue.bind(this)}></input>
+                    <input type="number" placeholder="min" onBlur={this.editMin.bind(this)}></input>
+                    <input type="number" placeholder="max" onBlur={this.editMax.bind(this)}></input>
+                    <input type="number" placeholder="snap" onBlur={this.editSnap.bind(this)}></input>
+                    <button onClick={this.stopEditing.bind(this)}>  X  </button>
                 </div>}
             </div>
         );

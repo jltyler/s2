@@ -10,7 +10,7 @@ const notePlannerBuffer = .25; // Notes are plannesd this far in advance (in sec
 
 const defaultEcho = {
     delay: 0.2,
-    decay: 0.66,
+    decay: 0.66
 };
 
 class Echo {
@@ -21,6 +21,10 @@ class Echo {
         this.gain = audioContext.createGain();
         this.gain.gain.value = this.options.decay;
         this.delay.connect(this.gain).connect(this.delay);
+    }
+
+    getDestination() {
+        return this.delay;
     }
 
     setDelay(delay) {
@@ -38,7 +42,7 @@ class Echo {
     }
 
     connect(node) {
-        this.gain.connect(node);
+        this.delay.connect(node);
     }
 
     __connectFrom() {
@@ -47,6 +51,14 @@ class Echo {
         console.log('arguments', arguments);
 
     }
+}
+
+const getFinalDestination = (destination) => {
+    if (destination) {
+        if (destination instanceof AudioNode) return destination;
+        else if (destination instanceof Echo || destination instanceof Filter) return destination.getDestination();
+    }
+    return audioContext.destination;
 }
 
 const defaultEnvelope = {
@@ -61,10 +73,23 @@ const defaultEnvelope = {
 };
 
 class Envelope {
+    /**
+     * Create a new Envelope
+     * @param {string} name Name of the envelope
+     * @param {Object} options Envelope options object
+     * @param {number} options.attack Attack length
+     * @param {number} options.decay Decay length
+     * @param {number} options.sustain Sustain level
+     * @param {number} options.length Sustain length
+     * @param {number} options.release Release length
+     * @param {number} options.scale Output multiplier
+     * @param {number} options.base Base level value to start from
+     */
     constructor(name, options = {}) {
         if (!audioContext) console.error('Envelope::Envelope(): Invalid audioContext!');
         this.name = name;
         this.options = {...defaultEnvelope, ...options};
+        // TODO TRASH RELEASE MAYBE
     }
 
     connect(destination) {
@@ -111,9 +136,9 @@ class Envelope {
 }
 
 const defaultLFO = {
+    waveform: 'sine',
     frequency: 1,
     amplitude: 10,
-    waveform: 'sine',
     singular: false
 };
 
@@ -122,14 +147,24 @@ const defaultLFO = {
  * Can receive connections from other LFOs or other connection classes
  */
 class LFO {
+    /**
+     * Create a new LFO
+     * @param {string} name Name of the LFO
+     * @param {Object} options LFO options object
+     * @param {string} options.waveform String representing LFO waveform. Default: 'sine'
+     * @param {number} options.frequency Oscillation frequency. Default: 1
+     * @param {number} options.amplitude Output multiplier. Output ranges from (1 * amplitude) to (-1 * amplitude)  Default: 10
+     */
     constructor(name, options = {}) {
         if (!audioContext) console.error('LFO::LFO(): Invalid audioContext!');
         this.name = name;
         this.options = Object.assign({}, defaultLFO, options);
 
         // If singular envelope is selected these will hold the nodes' references
+        // TODO TRASH SINGULAR STUFF
         this.osc = null;
         this.gain = null;
+        this.options.singular = false;
 
         if (this.options.singular) this.enableSingular();
 
@@ -327,6 +362,107 @@ const defaultFilterEnvelope = {
     Q: 1
 };
 
+const defaultFilterOptions = {
+    type: 'lowpass',
+    frequency: 22500,
+    Q: 1,
+    destination: null,
+}
+
+class Filter {
+    /**
+     * Create a new filter
+     * @param {string} name Name of the filter
+     * @param {Object} options Filter options object
+     * @param {string} options.type String representing filter type. Default: 'lowpass'
+     * @param {number} options.frequency Target frequency of filter. Default: 22500
+     * @param {number} options.Q Quality factor. Default: 1
+     * @param {number} options.destination Where to output signal to. Default: null
+     */
+    constructor(name, options = {}) {
+        if (!audioContext) console.error('Filter::Filter(): Invalid audioContext!');
+        this.name = name;
+        this.options = Object.assign({}, defaultFilterOptions, options);
+
+        this.connections = {
+            'frequency': null,
+            'Q': null,
+        };
+    }
+
+    connectFrom(source) {
+        source.connect(this.newFilter());
+    }
+
+    getDestination() {
+        return this.newFilter();
+    }
+
+    newFilter() {
+        const filter = audioContext.createBiquadFilter();
+        filter.frequency.value = this.options.frequency;
+        filter.Q.value = this.options.Q;
+        filter.type = this.options.type;
+        filter.connect(getFinalDestination(this.options.destination));
+        this.connectParams(filter);
+        return filter;
+    }
+
+    addConnection(param, source) {
+        if (param in this.connections) {
+            if (source instanceof LFO || source instanceof Envelope) {
+                this.connections[param] = source;
+                if (this.options.singular) {
+                    this.connectFrequency(this.osc);
+                    this.connectAmplitude(this.gain);
+                }
+                return true;
+            } else {
+                console.warn(`Source is NOT a valid connector!`);
+                return false;
+            }
+        } else {
+            console.warn(`Parameter '${param}' is NOT a valid connection receiver!`);
+            return false;
+        }
+    }
+
+    getConnection(param) {
+        if (param in this.connections) {
+            return this.connections[param];
+        }
+    }
+
+    getConnections() {
+        return this.connections;
+    }
+
+    removeConnection(param) {
+        if (param in this.connections) {
+            this.connections[param] = null;
+        }
+    }
+
+    connectParams(filter) {
+        if (this.connections.frequency) {
+            this.connections.frequency.connect(filter.detune);
+        }
+        if (this.connections.Q) {
+            this.connections.Q.connect(filter.Q);
+        }
+    }
+
+    setOption(key, value) {
+        if (key in this.options) {
+            this.options[key] = value;
+        }
+    }
+
+    getOption(key) {
+        return this.options[key];
+    }
+}
+
 /** =========================================================================
  * Stores filter frequency envelope options. Creates BiquadFilterNodes and schedules changes on the frequency AudioParam
  */
@@ -519,7 +655,15 @@ class Voice {
         const finalGain = audioContext.createGain();
         finalGain.gain.value = opt.gain;
 
-        panner.connect(gain).connect(compressor).connect(finalGain).connect(opt.destination || audioContext.destination);
+        const finalDestination = getFinalDestination(opt.destination);
+        // audioContext.destination;
+        // if (opt.destination) {
+        //     if (opt.destination instanceof Echo || opt.destination instanceof Filter) {
+        //         finalDestination = opt.destination.getDestination();
+        //     } else finalDestination = opt.destination;
+        // }
+
+        panner.connect(gain).connect(compressor).connect(finalGain).connect(finalDestination);
         this.connectParams(panner, gain);
 
         const id = this.getOscId();
@@ -699,9 +843,11 @@ class S2Audio {
         this.voices = {}; // Holds Voice references with named keys
         this.LFOs = {}; // LFO references
         this.envelopes = {}; // Envelope references
+        this.filters = {}; // Filter references
         this.playing = {}; // Dict for current notes being played (by keyboard)
         this.paramConnectionsByParam = {}; // Current connected params
         this.paramConnectionsBySource = {}; // I'm desperate to think of another way of doing this
+        this.audioConnections = {};
 
         // In case these are called from DOM events
         this.init = this.init.bind(this);
@@ -718,6 +864,17 @@ class S2Audio {
     init() {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         audioContext = this.ctx = new AudioContext();
+
+        this.testEcho = new Echo({delay: 0.8, decay: 0.55});
+        this.testEcho.connect(this.ctx.destination);
+        // const fdest = this.testEcho.getDestination();
+        const fdest = this.ctx.destination;
+        this.testFilter = new Filter('TestFilter', {frequency: 6500, Q: 10, type: 'lowpass', destination: fdest});
+        this.testLFO  = new LFO('TestFilterLFO', {frequency: 8, amplitude: 6000});
+        this.testEnvelope = new Envelope('TestFilterEnvelope', {attack: 0.4, decay: 0.2, sustain: 0.4, release: 4, scale: 20, length: 3, base: 0});
+        this.testFilter.addConnection('frequency', this.testLFO);
+        this.testFilter.addConnection('Q', this.testEnvelope);
+
         this.initialized = true;
     }
 
@@ -740,6 +897,7 @@ class S2Audio {
         if (name in this.voices) return this.voices[name];
         else if (name in this.LFOs) return this.LFOs[name];
         else if (name in this.envelopes) return this.envelopes[name];
+        else if (name in this.filters) return this.filters[name];
         else return null;
     }
 
@@ -763,7 +921,7 @@ class S2Audio {
      */
     newVoice(name = 'Voice') {
         name = this.firstNameAvailable(name);
-        this.voices[name] = new Voice(name, {destination: this.echoMiddleNode});
+        this.voices[name] = new Voice(name, {destination: this.testFilter});
         // this.voices[name] = new Voice(name, {destination: audioContext.destination});
         return name;
     }
@@ -791,7 +949,9 @@ class S2Audio {
     }
 
     removeVoice(name) {
-        if (name in this.voices) delete this.voices[name];
+        if (name in this.voices) {
+            delete this.voices[name];
+        }
     }
 
     /**
@@ -840,7 +1000,7 @@ class S2Audio {
      */
     newEnvelope(name = 'Envelope') {
         name = this.firstNameAvailable(name);
-        this.envelopes[name] = new Envelope(name, {attack: 0.2, decay: 0.2, sustain: 0.1, length: 0.5, scale: 1000});
+        this.envelopes[name] = new Envelope(name);
         return name;
     }
 
@@ -868,6 +1028,44 @@ class S2Audio {
 
     removeEnvelope(name) {
         if (name in this.envelopes) delete this.envelopes[name];
+    }
+
+    /**
+     * Create a new named Filter and store it in this.filters.
+     * If a name already exists the name will be appended with a '+'
+     * @param {string} name Name of the Filter
+     * @returns {string} Final name of Filter
+     */
+    newFilter(name = 'Filter') {
+        name = this.firstNameAvailable(name);
+        this.filters[name] = new Filter(name);
+        return name;
+    }
+
+    /**
+     * Get Filter reference from name (if it exists)
+     * @param {string} name Name of Filter
+     * @returns {Filter} Filter object reference
+     */
+    getFilter(name) {
+        if (name in this.filter) return this.filter[name];
+    }
+
+    getFilters() {
+        return this.filters;
+    }
+
+    renameFilter(name, newName) {
+        if (name in this.filters) {
+            newName = this.firstNameAvailable(newName);
+            this.filters[newName] = this.filters[name];
+            delete this.filters[name];
+        }
+        return newName;
+    }
+
+    removeFilter(name) {
+        if (name in this.filters) delete this.filters[name];
     }
 
     // User interface information and config functions
@@ -947,6 +1145,35 @@ class S2Audio {
             delete this.paramConnectionsByParam[r.name + '.' + r.param];
             delete this.paramConnectionsBySource[sourceName];
         }
+    }
+
+    addAudioConnection(source, destination) {
+        console.log('addAudioConnection', source, destination);
+        const s = this.getFromName(source);
+        const d = this.getFromName(destination);
+        if ( s && d ) {
+            this.audioConnections[source] = destination;
+            s.setOption('destination', d);
+        }
+
+    }
+
+    getAudioConnections() {
+        return this.audioConnections;
+    }
+
+    getAudioConnectionBySource(name) {
+        if (name in this.audioConnections) {
+            return this.audioConnections[name];
+        } else return null;
+    }
+
+    getAudioConnectionsByDestination(name) {
+        const sources = [];
+        for (const key in this.audioConnections) {
+            if (this.audioConnections[key] === name) sources.push(key);
+        }
+        return sources;
     }
 
     /**
