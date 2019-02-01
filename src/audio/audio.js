@@ -14,13 +14,16 @@ const defaultEcho = {
 };
 
 class Echo {
-    constructor(options = {}) {
+    constructor(name, options = {}) {
+        this.name = name;
         this.options = Object.assign({}, defaultEcho, options);
         this.delay = audioContext.createDelay();
         this.delay.delayTime.value = this.options.delay;
         this.gain = audioContext.createGain();
         this.gain.gain.value = this.options.decay;
         this.delay.connect(this.gain).connect(this.delay);
+        this.destination = null;
+        this.source = null;
     }
 
     getDestination() {
@@ -39,10 +42,12 @@ class Echo {
 
     connectSource(node) {
         node.connect(this.delay);
+        this.source = node;
     }
 
     connect(node) {
         this.delay.connect(node);
+        this.destination = node;
     }
 
     __connectFrom() {
@@ -865,15 +870,17 @@ class S2Audio {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         audioContext = this.ctx = new AudioContext();
 
-        this.testEcho = new Echo({delay: 0.8, decay: 0.55});
+        this.testEcho = new Echo('TestEcho', {delay: 0.8, decay: 0.55});
         this.testEcho.connect(this.ctx.destination);
         // const fdest = this.testEcho.getDestination();
         const fdest = this.ctx.destination;
-        this.testFilter = new Filter('TestFilter', {frequency: 6500, Q: 10, type: 'lowpass', destination: fdest});
-        this.testLFO  = new LFO('TestFilterLFO', {frequency: 8, amplitude: 6000});
-        this.testEnvelope = new Envelope('TestFilterEnvelope', {attack: 0.4, decay: 0.2, sustain: 0.4, release: 4, scale: 20, length: 3, base: 0});
-        this.testFilter.addConnection('frequency', this.testLFO);
-        this.testFilter.addConnection('Q', this.testEnvelope);
+        this.testFilter = this.newFilter('TestFilter', {frequency: 100, Q: 1, type: 'lowpass', destination: fdest});
+        // this.testFilter = new Filter('TestFilter', {frequency: 6500, Q: 10, type: 'lowpass', destination: fdest});
+        // this.testFilter = this.getFromName(filterName);
+        // this.testLFO  = new LFO('TestFilterLFO', {frequency: 8, amplitude: 6000});
+        // this.testEnvelope = new Envelope('TestFilterEnvelope', {attack: 0.4, decay: 0.2, sustain: 0.4, release: 4, scale: 20, length: 3, base: 0});
+        // this.getFromName(this.testFilter).addConnection('frequency', this.testLFO);
+        // this.getFromName(this.testFilter).addConnection('Q', this.testEnvelope);
 
         this.initialized = true;
     }
@@ -919,9 +926,10 @@ class S2Audio {
      * @param {string} name Name of the voice
      * @returns {string} Final name of voice
      */
-    newVoice(name = 'Voice') {
+    newVoice(name = 'Voice', options = {}) {
         name = this.firstNameAvailable(name);
-        this.voices[name] = new Voice(name, {destination: this.testFilter});
+        this.voices[name] = new Voice(name, options);
+        // this.addAudioConnection(name, this.testFilter);
         // this.voices[name] = new Voice(name, {destination: audioContext.destination});
         return name;
     }
@@ -960,7 +968,7 @@ class S2Audio {
      * @param {string} name Name of the LFO
      * @returns {string} Final name of LFO
      */
-    newLFO(name = 'LFO') {
+    newLFO(name = 'LFO', options = {}) {
         name = this.firstNameAvailable(name);
         this.LFOs[name] = new LFO(name);
         return name;
@@ -998,7 +1006,7 @@ class S2Audio {
      * @param {string} name Name of the Envelope
      * @returns {string} Final name of Envelope
      */
-    newEnvelope(name = 'Envelope') {
+    newEnvelope(name = 'Envelope', options = {}) {
         name = this.firstNameAvailable(name);
         this.envelopes[name] = new Envelope(name);
         return name;
@@ -1036,9 +1044,9 @@ class S2Audio {
      * @param {string} name Name of the Filter
      * @returns {string} Final name of Filter
      */
-    newFilter(name = 'Filter') {
+    newFilter(name = 'Filter', options = {}) {
         name = this.firstNameAvailable(name);
-        this.filters[name] = new Filter(name);
+        this.filters[name] = new Filter(name, options);
         return name;
     }
 
@@ -1075,7 +1083,11 @@ class S2Audio {
      */
     getAvailableConnections(exclude) {
         const c = [];
-        const combo = [...Object.keys(this.voices), ...Object.keys(this.LFOs)];
+        const combo = [
+            ...Object.keys(this.voices),
+            ...Object.keys(this.LFOs),
+            ...Object.keys(this.filters)
+        ];
         for (const name of combo) {
             if (name === exclude) continue;
             const connections = this.getFromName(name).getConnections();
@@ -1147,19 +1159,33 @@ class S2Audio {
         }
     }
 
+    getAvailableAudioConnections(exclude) {
+        const c = [];
+        const combo = [...Object.keys(this.filters)];
+        for (const name of combo) {
+            if (name === exclude) continue;
+            c.push(name);
+        }
+        return c;
+    }
+
     addAudioConnection(source, destination) {
-        console.log('addAudioConnection', source, destination);
         const s = this.getFromName(source);
         const d = this.getFromName(destination);
         if ( s && d ) {
             this.audioConnections[source] = destination;
             s.setOption('destination', d);
         }
-
     }
 
     getAudioConnections() {
         return this.audioConnections;
+    }
+
+    getAudioConnection(name) {
+        if (name in this.audioConnections) {
+            return this.audioConnections[name];
+        } else return null;
     }
 
     getAudioConnectionBySource(name) {
@@ -1174,6 +1200,13 @@ class S2Audio {
             if (this.audioConnections[key] === name) sources.push(key);
         }
         return sources;
+    }
+
+    removeAudioConnection(name) {
+        if (name in this.audioConnections) {
+            this.getFromName(name).setOption('destination', null);
+            delete this.audioConnections[name];
+        }
     }
 
     /**

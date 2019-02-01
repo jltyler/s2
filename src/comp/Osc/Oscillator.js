@@ -15,6 +15,17 @@ const setEnvelopeOption = (voice, key, value) => {
     voice.getEnvelope().setOption(key, value);
 };
 
+const setAudioConnection = (iface, voice, update, e) => {
+    if (e.target.value === 'none') iface.removeAudioConnection(voice.name);
+    iface.addAudioConnection(voice.name, e.target.value);
+    update(); // There has got to be a better way of doing this
+};
+
+const getAudioConnection = (iface, voice) => {
+    const r = iface.getAudioConnection(voice.name);
+    return r || 'none';
+};
+
 const Oscillator = (props) => {
     const voice = props.interface.getVoice(props.name);
     return (
@@ -32,7 +43,14 @@ const Oscillator = (props) => {
                     <Knob label="Unison" handler={setVoiceOption.bind(null, voice, 'unison')} min={1} max={12} snap={1} value={1} defaultValue={1} precision={0} />
                     <Knob label="Unison Spread" handler={setVoiceOption.bind(null, voice, 'unisonSpread')} min={0.001} max={5} defaultValue={1} />
                 </div>
-                Output destination
+                <div>
+                    Output destination
+                    <select onChange={setAudioConnection.bind(null, props.interface, voice, props.update)} value={getAudioConnection(props.interface, voice)}>
+                        <option key="none" value="none">Main</option>
+                        {props.interface.getAvailableAudioConnections(props.name).map((c, i) => <option key={i} value={c}>{c}</option>)}
+                    </select>
+                </div>
+
             </div>
             <div className="oscillator-envelope">
                 <h2>Envelope (gain)</h2>
