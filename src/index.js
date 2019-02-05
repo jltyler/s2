@@ -65,10 +65,10 @@ class Main extends Component {
                 <main className="main">
                     {this.renderMainDisplay()}
                 </main>
-                <footer className={'footer' + (this.state.showFooter ? ' extended' : '')}>
+                {/* <footer className={'footer' + (this.state.showFooter ? ' extended' : '')}>
                     <button onClick={this.toggleFooter} >{this.state.showFooter ? 'v' : '^'}</button>
                     Footre
-                </footer>
+                </footer> */}
             </div>
         );
     }

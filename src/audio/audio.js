@@ -22,12 +22,12 @@ class Echo {
         this.gain = audioContext.createGain();
         this.gain.gain.value = this.options.decay;
         this.delay.connect(this.gain).connect(this.delay);
-        this.destination = null;
-        this.source = null;
+        this.pass = audioContext.createGain();
+        this.pass.connect(this.delay);
     }
 
     getDestination() {
-        return this.delay;
+        return this.pass;
     }
 
     setDelay(delay) {
@@ -39,22 +39,25 @@ class Echo {
         this.options.decay = decay;
         this.gain.gain.value = decay;
     }
-
-    connectSource(node) {
-        node.connect(this.delay);
-        this.source = node;
-    }
-
+    
     connect(node) {
         this.delay.connect(node);
-        this.destination = node;
+        this.pass.connect(node);
     }
 
-    __connectFrom() {
-        console.log('Echo::__connectFrom');
-        console.log('this', this);
-        console.log('arguments', arguments);
+    connectSource(node) {
+        node.connect(this.pass);
+        // node.connect(this.delay);
+    }
 
+    disconnect(node) {
+        this.delay.disconnect(node);
+        this.pass.disconnect(node);
+    }
+
+    disconnectSource(node) {
+        node.disconnect(this.pass);
+        // node.disconnect(this.delay);
     }
 }
 
@@ -369,7 +372,7 @@ const defaultFilterEnvelope = {
 
 const defaultFilterOptions = {
     type: 'lowpass',
-    frequency: 22500,
+    frequency: 22050,
     Q: 1,
     gain: 0,
     destination: null,
