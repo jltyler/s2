@@ -26,6 +26,12 @@ const getAudioConnection = (iface, voice) => {
     return r || 'none';
 };
 
+const setWaveform = (voice, e) => {
+    console.log('voice:', voice);
+    console.log('e.target.value:', e.target.value);
+    voice.setOption('waveform', e.target.value);
+};
+
 const Oscillator = (props) => {
     const voice = props.interface.getVoice(props.name);
     return (
@@ -40,6 +46,12 @@ const Oscillator = (props) => {
                     <Knob label="Octave" handler={setVoiceOption.bind(null, voice, 'octave')} min={-2} max={2} snap={1} defaultValue={0} precision={0} />
                     <Knob label="Tune" handler={setVoiceOption.bind(null, voice, 'detune')} min={-1} max={1} defaultValue={0} />
                     Waveform <br />
+                    <select onChange={setWaveform.bind(null, voice)}>
+                        <option value="sine">Sine</option>
+                        <option value="square">Square</option>
+                        <option value="sawtooth">Sawtooth</option>
+                        <option value="triangle">Triangle</option>
+                    </select>
                     <Knob label="Unison" handler={setVoiceOption.bind(null, voice, 'unison')} min={1} max={12} snap={1} value={1} defaultValue={1} precision={0} />
                     <Knob label="Unison Spread" handler={setVoiceOption.bind(null, voice, 'unisonSpread')} min={0.001} max={5} defaultValue={1} />
                 </div>

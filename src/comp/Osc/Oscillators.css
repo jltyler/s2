@@ -20,7 +20,7 @@
     vertical-align: top;
 }
 
-.add-oscillator, .add-lfo, .add-envelope {
+.add-oscillator, .add-lfo, .add-envelope, .add-filter {
     display: inline-block;
     vertical-align: top;
     min-width: 50px;
@@ -37,4 +37,5 @@
 
 .add-envelope {
     background-color: whitesmoke;
+    color: darkslategray;
 }

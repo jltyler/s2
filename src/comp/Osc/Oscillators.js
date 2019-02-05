@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import Oscillator from './Oscillator';
 import LFO from './LFO';
 import Envelope from './Envelope';
+import Filter from './Filter';
 import './Oscillators.css';
 
 class Oscillators extends Component {
@@ -12,6 +13,7 @@ class Oscillators extends Component {
             oscillators: [],
             LFOs: [],
             envelopes: [],
+            filters: [],
             update: 0,
         };
 
@@ -22,6 +24,7 @@ class Oscillators extends Component {
         this.addOscillator = this.addOscillator.bind(this);
         this.addLFO = this.addLFO.bind(this);
         this.addEnvelope = this.addEnvelope.bind(this);
+        this.addFilter = this.addFilter.bind(this);
     }
 
     addOscillator() {
@@ -48,6 +51,14 @@ class Oscillators extends Component {
         });
     }
 
+    addFilter() {
+        this.setState((prevState) => {
+            const filters = [...prevState.filters];
+            filters.push(this.interface.newFilter());
+            return {filters};
+        });
+    }
+
     update() {
         this.setState((s) => ({update: s.update + 1}));
     }
@@ -70,15 +81,23 @@ class Oscillators extends Component {
         });
     }
 
+    renderFilters() {
+        return Object.keys(this.interface.getFilters()).map((name) => {
+            return <Filter name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
+        });
+    }
+
     render() {
         return (
             <div className="oscillators">
                 {this.renderOscillators()}
                 {this.renderLFOs()}
                 {this.renderEnvelopes()}
-                <div className="add-oscillator" onClick={this.addOscillator}>+</div>
-                <div className="add-lfo" onClick={this.addLFO}>+</div>
-                <div className="add-envelope" onClick={this.addEnvelope}>+</div>
+                {this.renderFilters()}
+                <div className="add-oscillator" onClick={this.addOscillator}>V+</div>
+                <div className="add-lfo" onClick={this.addLFO}>L+</div>
+                <div className="add-envelope" onClick={this.addEnvelope}>E+</div>
+                <div className="add-oscillator" onClick={this.addFilter}>F+</div>
             </div>
         );
     }

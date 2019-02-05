@@ -371,6 +371,7 @@ const defaultFilterOptions = {
     type: 'lowpass',
     frequency: 22500,
     Q: 1,
+    gain: 0,
     destination: null,
 }
 
@@ -382,6 +383,7 @@ class Filter {
      * @param {string} options.type String representing filter type. Default: 'lowpass'
      * @param {number} options.frequency Target frequency of filter. Default: 22500
      * @param {number} options.Q Quality factor. Default: 1
+     * @param {number} options.gain Gain (only used on shelf and peaking filters). Default: 0
      * @param {number} options.destination Where to output signal to. Default: null
      */
     constructor(name, options = {}) {
@@ -849,6 +851,7 @@ class S2Audio {
         this.LFOs = {}; // LFO references
         this.envelopes = {}; // Envelope references
         this.filters = {}; // Filter references
+        this.nodes = {}; // Nodes with the generic interface
         this.playing = {}; // Dict for current notes being played (by keyboard)
         this.paramConnectionsByParam = {}; // Current connected params
         this.paramConnectionsBySource = {}; // I'm desperate to think of another way of doing this
@@ -870,11 +873,14 @@ class S2Audio {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         audioContext = this.ctx = new AudioContext();
 
-        this.testEcho = new Echo('TestEcho', {delay: 0.8, decay: 0.55});
-        this.testEcho.connect(this.ctx.destination);
+        // this.testEcho = new Echo('TestEcho', {delay: 0.8, decay: 0.55});
+        // this.testEcho.connect(this.ctx.destination);
+        const name = this.newNode('TestEcho', Echo, {delay: 0.8, decay: 0.55});
+        this.testEcho = this.getFromName(name);
         // const fdest = this.testEcho.getDestination();
         const fdest = this.ctx.destination;
-        this.testFilter = this.newFilter('TestFilter', {frequency: 100, Q: 1, type: 'lowpass', destination: fdest});
+        this.testEcho.connect(fdest);
+        // this.testFilter = this.newFilter('TestFilter', {frequency: 100, Q: 1, type: 'lowpass', destination: fdest});
         // this.testFilter = new Filter('TestFilter', {frequency: 6500, Q: 10, type: 'lowpass', destination: fdest});
         // this.testFilter = this.getFromName(filterName);
         // this.testLFO  = new LFO('TestFilterLFO', {frequency: 8, amplitude: 6000});
@@ -905,6 +911,16 @@ class S2Audio {
         else if (name in this.LFOs) return this.LFOs[name];
         else if (name in this.envelopes) return this.envelopes[name];
         else if (name in this.filters) return this.filters[name];
+        else if (name in this.nodes) return this.nodes[name];
+        else return null;
+    }
+
+    getTypeList(name) {
+        if (name in this.voices) return this.voices;
+        else if (name in this.LFOs) return this.LFOs;
+        else if (name in this.envelopes) return this.envelopes;
+        else if (name in this.filters) return this.filters;
+        else if (name in this.nodes) return this.nodes;
         else return null;
     }
 
@@ -920,6 +936,37 @@ class S2Audio {
         return name;
     }
 
+    newNode(name = 'Node', type=Echo, options = {}) {
+        name = this.firstNameAvailable(name);
+        this.nodes[name] = new type(name, options);
+        return name;
+    }
+
+    getVoice(name) {
+        if (name in this.voices) return this.voices[name];
+    }
+
+    getVoices() {
+        return this.voices;
+    }
+
+    rename(name, newName) {
+        const l = this.getTypeList(name);
+        if (l) {
+            newName = firstNameAvailable(newName);
+            l[newName] = l[name];
+            delete l[name];
+        }
+    }
+
+    remove(name) {
+        const l = this.getTypeList(name);
+        if (l) {
+            delete l[name];
+        }
+    }
+
+
     /**
      * Create a new named voice and store it in this.voices.
      * If a name already exists the name will be appended with a '+'
@@ -929,8 +976,6 @@ class S2Audio {
     newVoice(name = 'Voice', options = {}) {
         name = this.firstNameAvailable(name);
         this.voices[name] = new Voice(name, options);
-        // this.addAudioConnection(name, this.testFilter);
-        // this.voices[name] = new Voice(name, {destination: audioContext.destination});
         return name;
     }
 
@@ -945,15 +990,6 @@ class S2Audio {
 
     getVoices() {
         return this.voices;
-    }
-
-    renameVoice(name, newName) {
-        if (name in this.voices) {
-            newName = this.firstNameAvailable(newName);
-            this.voices[newName] = this.voices[name];
-            delete this.voices[name];
-        }
-        return newName;
     }
 
     removeVoice(name) {
@@ -987,15 +1023,6 @@ class S2Audio {
         return this.LFOs;
     }
 
-    renameLFO(name, newName) {
-        if (name in this.LFOs) {
-            newName = this.firstNameAvailable(newName);
-            this.LFOs[newName] = this.LFOs[name];
-            delete this.LFOs[name];
-        }
-        return newName;
-    }
-
     removeLFO(name) {
         if (name in this.LFOs) delete this.LFOs[name];
     }
@@ -1025,15 +1052,6 @@ class S2Audio {
         return this.envelopes;
     }
 
-    renameEnvelope(name, newName) {
-        if (name in this.envelopes) {
-            newName = this.firstNameAvailable(newName);
-            this.envelopes[newName] = this.envelopes[name];
-            delete this.envelopes[name];
-        }
-        return newName;
-    }
-
     removeEnvelope(name) {
         if (name in this.envelopes) delete this.envelopes[name];
     }
@@ -1061,15 +1079,6 @@ class S2Audio {
 
     getFilters() {
         return this.filters;
-    }
-
-    renameFilter(name, newName) {
-        if (name in this.filters) {
-            newName = this.firstNameAvailable(newName);
-            this.filters[newName] = this.filters[name];
-            delete this.filters[name];
-        }
-        return newName;
     }
 
     removeFilter(name) {
@@ -1161,7 +1170,7 @@ class S2Audio {
 
     getAvailableAudioConnections(exclude) {
         const c = [];
-        const combo = [...Object.keys(this.filters)];
+        const combo = [...Object.keys(this.filters), ...Object.keys(this.nodes)];
         for (const name of combo) {
             if (name === exclude) continue;
             c.push(name);
