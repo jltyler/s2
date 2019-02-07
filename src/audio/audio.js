@@ -4,7 +4,6 @@ import {NOTES, ALPHA} from './notes';
 import {newIdGenerator} from '../Utility';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
-let audioContext = undefined; // AudioContext instance is created when S2Audio::init is called
 const notePlannerInterval = 100; // Delay between planning notes
 const notePlannerBuffer = .25; // Notes are plannesd this far in advance (in seconds)
 
@@ -14,15 +13,15 @@ const defaultEcho = {
 };
 
 class Echo {
-    constructor(name, options = {}) {
-        this.name = name;
+    constructor(context, options = {}) {
+        this.context = context;
         this.options = Object.assign({}, defaultEcho, options);
-        this.delay = audioContext.createDelay();
+        this.delay = this.context.createDelay();
         this.delay.delayTime.value = this.options.delay;
-        this.gain = audioContext.createGain();
+        this.gain = this.context.createGain();
         this.gain.gain.value = this.options.decay;
         this.delay.connect(this.gain).connect(this.delay);
-        this.pass = audioContext.createGain();
+        this.pass = this.context.createGain();
         this.pass.connect(this.delay);
     }
 
@@ -39,7 +38,7 @@ class Echo {
         this.options.decay = decay;
         this.gain.gain.value = decay;
     }
-    
+
     connect(node) {
         this.delay.connect(node);
         this.pass.connect(node);
@@ -59,14 +58,18 @@ class Echo {
         node.disconnect(this.pass);
         // node.disconnect(this.delay);
     }
+
+    setName(name) {
+        this.name = name;
+    }
 }
 
-const getFinalDestination = (destination) => {
+const getFinalDestination = (destination, context) => {
     if (destination) {
         if (destination instanceof AudioNode) return destination;
         else if (destination instanceof Echo || destination instanceof Filter) return destination.getDestination();
     }
-    return audioContext.destination;
+    return context.destination;
 }
 
 const defaultEnvelope = {
@@ -93,16 +96,16 @@ class Envelope {
      * @param {number} options.scale Output multiplier
      * @param {number} options.base Base level value to start from
      */
-    constructor(name, options = {}) {
-        if (!audioContext) console.error('Envelope::Envelope(): Invalid audioContext!');
-        this.name = name;
+    constructor(context, options = {}) {
+        if (!context) console.error('Envelope::Envelope(): Invalid audioContext!');
+        this.context = context;
         this.options = {...defaultEnvelope, ...options};
         // TODO TRASH RELEASE MAYBE
     }
 
     connect(destination) {
-        const startTime = audioContext.currentTime;
-        const cs = audioContext.createConstantSource();
+        const startTime = this.context.currentTime;
+        const cs = this.context.createConstantSource();
         const o = this.options;
         cs.offset.setValueAtTime(o.base, startTime);
         cs.offset.linearRampToValueAtTime(o.base + o.scale, startTime + o.attack);
@@ -141,6 +144,10 @@ class Envelope {
     getOption(key) {
         return this.options[key];
     }
+
+    setName(name) {
+        this.name = name;
+    }
 }
 
 const defaultLFO = {
@@ -163,9 +170,9 @@ class LFO {
      * @param {number} options.frequency Oscillation frequency. Default: 1
      * @param {number} options.amplitude Output multiplier. Output ranges from (1 * amplitude) to (-1 * amplitude)  Default: 10
      */
-    constructor(name, options = {}) {
-        if (!audioContext) console.error('LFO::LFO(): Invalid audioContext!');
-        this.name = name;
+    constructor(context, options = {}) {
+        if (!context) console.error('LFO::LFO(): Invalid audioContext!');
+        this.context = context;
         this.options = Object.assign({}, defaultLFO, options);
 
         // If singular envelope is selected these will hold the nodes' references
@@ -203,11 +210,11 @@ class LFO {
 
     enableSingular() {
         this.options.singular = true;
-        this.osc = audioContext.createOscillator();
+        this.osc = this.context.createOscillator();
         this.osc.frequency.value = this.options.frequency;
         this.connectFrequency(this.osc);
 
-        this.gain = audioContext.createGain();
+        this.gain = this.context.createGain();
         this.gain.gain.value = this.options.amplitude;
         this.connectAmplitude(this.gain);
 
@@ -223,11 +230,11 @@ class LFO {
     }
 
     newLFO() {
-        const osc = audioContext.createOscillator();
+        const osc = this.context.createOscillator();
         osc.frequency.value = this.options.frequency;
         this.connectFrequency(osc);
 
-        const gain = audioContext.createGain();
+        const gain = this.context.createGain();
         gain.gain.value = this.options.amplitude;
         this.connectAmplitude(gain);
 
@@ -292,6 +299,10 @@ class LFO {
             this.connections[param] = null;
         }
     }
+
+    setName(name) {
+        this.name = name;
+    }
 }
 
 const defaultGainEnvelope = {
@@ -313,8 +324,9 @@ class GainEnvelope {
      * @param {number} options.sustain Sustain level.  Default: 1.0
      * @param {number} options.release Release (in seconds). Default: 2.0
      */
-    constructor(options = {}) {
-        if (!audioContext) console.error('GainEnvelope::GainEnvelope(): Invalid audioContext!');
+    constructor(context, options = {}) {
+        if (!context) console.error('GainEnvelope::GainEnvelope(): Invalid audioContext!');
+        this.context = context;
         this.options = Object.assign({}, defaultGainEnvelope, options);
         this.attachRelease = this.attachRelease.bind(this);
         this.newEnvelope = this.newEnvelope.bind(this);
@@ -327,7 +339,7 @@ class GainEnvelope {
      * @param {number} startTime When the scheduled changes should start occuring
      */
     newEnvelope(startTime) {
-        const gain = audioContext.createGain();
+        const gain = this.context.createGain();
         gain.gain.cancelScheduledValues(startTime);
         gain.gain.setValueAtTime(0, startTime);
         gain.gain.linearRampToValueAtTime(1, startTime + this.options.attack);
@@ -357,6 +369,10 @@ class GainEnvelope {
 
     getOption(key) {
         return this.options[key];
+    }
+
+    setName(name) {
+        this.name = name;
     }
 }
 
@@ -389,9 +405,9 @@ class Filter {
      * @param {number} options.gain Gain (only used on shelf and peaking filters). Default: 0
      * @param {number} options.destination Where to output signal to. Default: null
      */
-    constructor(name, options = {}) {
-        if (!audioContext) console.error('Filter::Filter(): Invalid audioContext!');
-        this.name = name;
+    constructor(context, options = {}) {
+        if (!context) console.error('Filter::Filter(): Invalid audioContext!');
+        this.context = context;
         this.options = Object.assign({}, defaultFilterOptions, options);
 
         this.connections = {
@@ -409,11 +425,11 @@ class Filter {
     }
 
     newFilter() {
-        const filter = audioContext.createBiquadFilter();
+        const filter = this.context.createBiquadFilter();
         filter.frequency.value = this.options.frequency;
         filter.Q.value = this.options.Q;
         filter.type = this.options.type;
-        filter.connect(getFinalDestination(this.options.destination));
+        filter.connect(getFinalDestination(this.options.destination, this.context));
         this.connectParams(filter);
         return filter;
     }
@@ -471,69 +487,9 @@ class Filter {
     getOption(key) {
         return this.options[key];
     }
-}
 
-/** =========================================================================
- * Stores filter frequency envelope options. Creates BiquadFilterNodes and schedules changes on the frequency AudioParam
- */
-class FilterEnvelope {
-    /**
-     * Create a new FilterEnvelope
-     * @param {Object} options FilterEnvelope options object
-     * @param {number} options.attack Attack (in seconds). Default: 0.1
-     * @param {number} options.decay Decay (in seconds). Default: 0.2
-     * @param {number} options.sustain Sustain level multiplier.  Default: 1.0
-     * @param {number} options.release Release (in seconds). Default: 2.0
-     * @param {string} options.type Filter type. Default: 'highpass'
-     * @param {number} options.freq Maximum frequency. Default: 22500
-     * @param {number} options.Q Quality factor. Default: 1
-     */
-    constructor(options = {}) {
-        if (!audioContext) console.error('FilterEnvelope::FilterEnvelope(): Invalid audioContext!');
-        this.options = Object.assign({}, defaultFilterEnvelope, options);
-        this.attachRelease = this.attachRelease.bind(this);
-        this.newEnvelope = this.newEnvelope.bind(this);
-        this.setOption = this.setOption.bind(this);
-        this.getOption = this.getOption.bind(this);
-    }
-
-    /**
-     * Create a new BiquadFilterNode, schedule the envelope changes, and return it
-     * @param {number} startTime When the scheduled changes should start occuring
-     */
-    newEnvelope(startTime) {
-        const filter = audioContext.createBiquadFilter();
-        filter.type = this.options.type;
-        filter.Q.value = this.options.Q;
-        filter.frequency.cancelScheduledValues(startTime);
-        filter.frequency.setValueAtTime(0, startTime);
-        filter.frequency.linearRampToValueAtTime(this.options.freq, startTime + this.options.attack);
-        filter.frequency.linearRampToValueAtTime(this.options.sustain * this.options.freq, startTime + this.options.attack + this.options.decay);
-        this.attachRelease(filter);
-        return filter;
-    }
-
-    /**
-     * Attaches a release function that recieves a time to schedule the release envelope settings.
-     * @param {BiquadFilterNode} filter BiquadFilterNode to attach the function to
-     */
-    attachRelease(filter) {
-        filter.release = ((stopTime) => {
-            filter.frequency.cancelScheduledValues(stopTime);
-            filter.frequency.setValueAtTime(filter.frequency.value, stopTime);
-            filter.frequency.linearRampToValueAtTime(0, stopTime + this.options.release);
-            return stopTime + this.options.release;
-        }).bind(this);
-    }
-
-    setOption(key, value) {
-        if (key in this.options) {
-            this.options[key] = value;
-        }
-    }
-
-    getOption(key) {
-        return this.options[key];
+    setName(name) {
+        this.name = name;
     }
 }
 
@@ -587,11 +543,11 @@ class Voice {
      * @param {number} options.sustain Sustain level. Default: 1.0
      * @param {number} options.release Release length. Default: 1.5
      */
-    constructor(name, options = {}) {
-        if (!audioContext) console.error('Voice::Voice(): Invalid audioContext!');
-        this.name = name;
+    constructor(context, options = {}) {
+        if (!context) console.error('Voice::Voice(): Invalid audioContext!');
+        this.context = context;
         this.options = Object.assign({}, defaultVoiceOptions, options);
-        this.gainEnv = new GainEnvelope({});
+        this.gainEnv = new GainEnvelope(this.context, {});
         console.log(this.options);
 
         this.playing = {};
@@ -622,7 +578,7 @@ class Voice {
      * @private
      */
     newOscillator(frequency, destination, startTime) {
-        const o = audioContext.createOscillator();
+        const o = this.context.createOscillator();
         o.type = this.options.waveform;
         o.frequency.value = frequency;
         this.connectOscParams(o);
@@ -641,10 +597,10 @@ class Voice {
      */
     play(frequency, startTime, stopTime = 0) {
         const opt = this.options;
-        const gain = opt.useEnvelope ? this.gainEnv.newEnvelope(startTime) : audioContext.createGain();
-        const panner = audioContext.createStereoPanner();
+        const gain = opt.useEnvelope ? this.gainEnv.newEnvelope(startTime) : this.context.createGain();
+        const panner = this.context.createStereoPanner();
         panner.pan.value = opt.pan;
-        const compressor = audioContext.createDynamicsCompressor();
+        const compressor = this.context.createDynamicsCompressor();
 
         let oscs = null;
 
@@ -662,11 +618,11 @@ class Voice {
             oscs = this.newOscillator(actualFrequency, panner, startTime);
         }
 
-        const finalGain = audioContext.createGain();
+        const finalGain = this.context.createGain();
         finalGain.gain.value = opt.gain;
 
-        const finalDestination = getFinalDestination(opt.destination);
-        // audioContext.destination;
+        const finalDestination = getFinalDestination(opt.destination, this.context);
+        // this.context.destination;
         // if (opt.destination) {
         //     if (opt.destination instanceof Echo || opt.destination instanceof Filter) {
         //         finalDestination = opt.destination.getDestination();
@@ -710,7 +666,7 @@ class Voice {
         const gain = this.playing[id][1];
         const env = this.playing[id][2];
 
-        const releaseTime = env ? gain.release(audioContext.currentTime) : audioContext.currentTime;
+        const releaseTime = env ? gain.release(this.context.currentTime) : this.context.currentTime;
         stopOscs(osc, releaseTime);
         delete this.playing[id];
     }
@@ -780,6 +736,10 @@ class Voice {
     getEnvelope() {
         return this.gainEnv;
     }
+
+    setName(name) {
+        this.name = name;
+    }
 }
 
 /** ===========================================================================
@@ -792,13 +752,14 @@ class NotePlanner {
      * @param {Voice} voice Voice to play the notes with
      * @param {AudioDestinationNode} destination Final destination of sound signal
      */
-    constructor(sequence, voice, destination) {
+    constructor(context, sequence, voice, destination) {
+        this.context = context;
         this.voice = voice;
         this.sequence = [...sequence];
         this.destination = destination;
 
         this.remaining = [];
-        this.startTime = audioContext.currentTime;
+        this.startTime = this.context.currentTime;
         this.running = false;
         this.plan = this.plan.bind(this);
     }
@@ -808,7 +769,7 @@ class NotePlanner {
      */
     start () {
         this.running = true;
-        this.startTime = audioContext.currentTime;
+        this.startTime = this.context.currentTime;
         this.remaining = [...this.sequence];
         this.plan();
     }
@@ -822,7 +783,7 @@ class NotePlanner {
         if (!this.remaining.length) return;
         let note = this.remaining[0];
         let i = 0;
-        while (note && note.start + this.startTime < audioContext.currentTime + notePlannerBuffer) {
+        while (note && note.start + this.startTime < this.context.currentTime + notePlannerBuffer) {
 
             this.voice.play(note.freq, this.destination, this.startTime + note.start, this.startTime + note.stop);
 
@@ -840,6 +801,10 @@ class NotePlanner {
 
     stop() {
         this.running = false;
+    }
+
+    setName(name) {
+        this.name = name;
     }
 }
 
@@ -874,22 +839,13 @@ class S2Audio {
      */
     init() {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
-        audioContext = this.ctx = new AudioContext();
+        this.context = new AudioContext();
 
-        // this.testEcho = new Echo('TestEcho', {delay: 0.8, decay: 0.55});
-        // this.testEcho.connect(this.ctx.destination);
         const name = this.newNode('TestEcho', Echo, {delay: 0.8, decay: 0.55});
         this.testEcho = this.getFromName(name);
         // const fdest = this.testEcho.getDestination();
-        const fdest = this.ctx.destination;
+        const fdest = this.context.destination;
         this.testEcho.connect(fdest);
-        // this.testFilter = this.newFilter('TestFilter', {frequency: 100, Q: 1, type: 'lowpass', destination: fdest});
-        // this.testFilter = new Filter('TestFilter', {frequency: 6500, Q: 10, type: 'lowpass', destination: fdest});
-        // this.testFilter = this.getFromName(filterName);
-        // this.testLFO  = new LFO('TestFilterLFO', {frequency: 8, amplitude: 6000});
-        // this.testEnvelope = new Envelope('TestFilterEnvelope', {attack: 0.4, decay: 0.2, sustain: 0.4, release: 4, scale: 20, length: 3, base: 0});
-        // this.getFromName(this.testFilter).addConnection('frequency', this.testLFO);
-        // this.getFromName(this.testFilter).addConnection('Q', this.testEnvelope);
 
         this.initialized = true;
     }
@@ -941,7 +897,8 @@ class S2Audio {
 
     newNode(name = 'Node', type=Echo, options = {}) {
         name = this.firstNameAvailable(name);
-        this.nodes[name] = new type(name, options);
+        this.nodes[name] = new type(this.context, options);
+        this.nodes[name].setName(name);
         return name;
     }
 
@@ -978,7 +935,8 @@ class S2Audio {
      */
     newVoice(name = 'Voice', options = {}) {
         name = this.firstNameAvailable(name);
-        this.voices[name] = new Voice(name, options);
+        this.voices[name] = new Voice(this.context, options);
+        this.voices[name].setName(name);
         return name;
     }
 
@@ -1009,7 +967,8 @@ class S2Audio {
      */
     newLFO(name = 'LFO', options = {}) {
         name = this.firstNameAvailable(name);
-        this.LFOs[name] = new LFO(name);
+        this.LFOs[name] = new LFO(this.context, options);
+        this.LFOs[name].setName(name);
         return name;
     }
 
@@ -1038,7 +997,8 @@ class S2Audio {
      */
     newEnvelope(name = 'Envelope', options = {}) {
         name = this.firstNameAvailable(name);
-        this.envelopes[name] = new Envelope(name);
+        this.envelopes[name] = new Envelope(this.context, options);
+        this.envelopes[name].setName(name);
         return name;
     }
 
@@ -1067,7 +1027,8 @@ class S2Audio {
      */
     newFilter(name = 'Filter', options = {}) {
         name = this.firstNameAvailable(name);
-        this.filters[name] = new Filter(name, options);
+        this.filters[name] = new Filter(this.context, options);
+        this.filters[name].setName(name);
         return name;
     }
 
@@ -1230,7 +1191,7 @@ class S2Audio {
                 this.playing[note] = [];
                 for (const name in this.voices) {
                     const v = this.voices[name];
-                    this.playing[note].push([v, v.play(NOTES[note], audioContext.currentTime)]);
+                    this.playing[note].push([v, v.play(NOTES[note], this.context.currentTime)]);
                 }
             }).bind(this),
             ((note) => {
@@ -1249,12 +1210,12 @@ class S2Audio {
 
     // BIN THIS (soon)
     startSequence() {
-        const np = new NotePlanner(Sequences.testSequence, v, this.ctx, comp);
+        const np = new NotePlanner(Sequences.testSequence, v, this.context, comp);
         np.start();
     }
 
     getAudioContext() {
-        return audioContext;
+        return this.context;
     }
 }
 
