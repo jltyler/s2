@@ -841,11 +841,11 @@ class S2Audio {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
         this.context = new AudioContext();
 
-        const name = this.newNode('TestEcho', Echo, {delay: 0.8, decay: 0.55});
-        this.testEcho = this.getFromName(name);
-        // const fdest = this.testEcho.getDestination();
-        const fdest = this.context.destination;
-        this.testEcho.connect(fdest);
+        // const name = this.newNode('TestEcho', Echo, {delay: 0.8, decay: 0.55});
+        // this.testEcho = this.getFromName(name);
+        // // const fdest = this.testEcho.getDestination();
+        // const fdest = this.context.destination;
+        // this.testEcho.connect(fdest);
 
         this.initialized = true;
     }
@@ -883,6 +883,16 @@ class S2Audio {
         else return null;
     }
 
+    getAllNodes() {
+        return {
+            voices: this.voices,
+            LFOs: this.LFOs,
+            envelopes: this.envelopes,
+            filters: this.filters,
+            nodes: this.nodes
+        };
+    }
+
     /**
      * Returns unique name by appending to name string repeatedly
      * @param {string} name Starting name
@@ -900,6 +910,17 @@ class S2Audio {
         this.nodes[name] = new type(this.context, options);
         this.nodes[name].setName(name);
         return name;
+    }
+
+    getNodesOfType(type) {
+        const o = {};
+        for (name in this.nodes) {
+            const node = this.nodes[name];
+            if (node instanceof type) {
+                o[name] = node;
+            }
+        }
+        return o;
     }
 
     getVoice(name) {
@@ -1047,6 +1068,14 @@ class S2Audio {
 
     removeFilter(name) {
         if (name in this.filters) delete this.filters[name];
+    }
+
+    newEcho(name = 'Echo', options = {}) {
+        return this.newNode(name, Echo, options);
+    }
+
+    getEchoes() {
+        return this.getNodesOfType(Echo);
     }
 
     // User interface information and config functions
