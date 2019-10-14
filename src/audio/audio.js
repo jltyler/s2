@@ -72,6 +72,26 @@ const getFinalDestination = (destination, context) => {
     return context.destination;
 }
 
+class ParamConnectionSource {
+    constructor() {
+        this.source = null;
+        this.connections = [];
+    }
+    newSource(source) {
+        if (source instanceof AudioScheduledSourceNode) {
+            this.source = source;
+        }
+    }
+    connectSourceTo(dest) {
+        if (dest instanceof AudioParam) {
+            this.source.connect();
+        }
+    }
+    disconnectSourceFrom(dest) {
+        this.source.disconnect(dest);
+    }
+}
+
 const defaultEnvelope = {
     attack: 0.1,
     decay: 0.2,
@@ -175,13 +195,8 @@ class LFO {
         this.context = context;
         this.options = Object.assign({}, defaultLFO, options);
 
-        // If singular envelope is selected these will hold the nodes' references
-        // TODO TRASH SINGULAR STUFF
         this.osc = null;
         this.gain = null;
-        this.options.singular = false;
-
-        if (this.options.singular) this.enableSingular();
 
         this.connections = {
             'frequency': null,
@@ -189,8 +204,6 @@ class LFO {
         };
 
         this.connect = this.connect.bind(this);
-        this.enableSingular = this.enableSingular.bind(this);
-        this.disableSingular = this.disableSingular.bind(this);
         this.newLFO = this.newLFO.bind(this);
         this.setFrequency = this.setFrequency.bind(this);
         this.setAmplitude = this.setAmplitude.bind(this);
@@ -201,32 +214,7 @@ class LFO {
     }
 
     connect(destination) {
-        if (this.options.singular) {
-            this.gain.connect(destination);
-        } else {
-            this.newLFO().connect(destination);
-        }
-    }
-
-    enableSingular() {
-        this.options.singular = true;
-        this.osc = this.context.createOscillator();
-        this.osc.frequency.value = this.options.frequency;
-        this.connectFrequency(this.osc);
-
-        this.gain = this.context.createGain();
-        this.gain.gain.value = this.options.amplitude;
-        this.connectAmplitude(this.gain);
-
-        this.osc.connect(this.gain);
-        this.osc.start();
-    }
-
-    disableSingular() {
-        this.options.singular = false;
-        this.osc.stop();
-        this.osc = null;
-        this.gain = null;
+        this.newLFO().connect(destination);
     }
 
     newLFO() {
@@ -245,12 +233,10 @@ class LFO {
 
     setFrequency(freq) {
         this.options.frequency = freq;
-        if (this.options.singular) this.osc.frequency.value = freq;
     }
 
     setAmplitude(amp) {
         this.options.amplitude = amp;
-        if (this.options.singular) this.gain.gain.value = amp;
     }
 
     connectFrequency(osc) {
@@ -269,10 +255,6 @@ class LFO {
         if (param in this.connections) {
             if (source instanceof LFO || source instanceof Envelope) {
                 this.connections[param] = source;
-                if (this.options.singular) {
-                    this.connectFrequency(this.osc);
-                    this.connectAmplitude(this.gain);
-                }
                 return true;
             } else {
                 console.warn(`Source is NOT a valid connector!`);
@@ -438,10 +420,6 @@ class Filter {
         if (param in this.connections) {
             if (source instanceof LFO || source instanceof Envelope) {
                 this.connections[param] = source;
-                if (this.options.singular) {
-                    this.connectFrequency(this.osc);
-                    this.connectAmplitude(this.gain);
-                }
                 return true;
             } else {
                 console.warn(`Source is NOT a valid connector!`);
@@ -808,6 +786,38 @@ class NotePlanner {
     }
 }
 
+class ParamConnection {
+    constructor(source, dest, param) {
+        if (source instanceof Envelope || source instanceof LFO) {
+            if (dest instanceof LFO || dest instanceof Filter) {
+                if (dest.addConnection(param, source)) {
+                    this.source = source;
+                    this.dest = dest;
+                    this.param = param;
+                    this.isValid = true;
+                }
+            } else {
+                console.warn(`ParamConnection::ParamConnection(): ${} is not a valid class destination`);
+            }
+        } else {
+            console.warn(`ParamConnection::ParamConnection(): Invalid source`);
+        }
+    }
+
+    isEqualTo(other) {
+        if (other instanceof ParamConnection) {
+            if (this.source === other.source && this.dest === other.dest && this.param === other.param) return true;
+        }
+        return false;
+    }
+
+
+
+    // connect() {
+
+    // }
+}
+
 /** ===========================================================================
  * Main audio controller for s2. You must call init() after creating this and before anything else
  */
@@ -821,6 +831,7 @@ class S2Audio {
         this.filters = {}; // Filter references
         this.nodes = {}; // Nodes with the generic interface
         this.playing = {}; // Dict for current notes being played (by keyboard)
+        this.paramConnections = []; // Multi-connections
         this.paramConnectionsByParam = {}; // Current connected params
         this.paramConnectionsBySource = {}; // I'm desperate to think of another way of doing this
         this.audioConnections = {};
@@ -838,7 +849,7 @@ class S2Audio {
      * User interaction is required before AudioContext will work properly
      */
     init() {
-        if (this.initialized) {console.log("S2Audio::init(): Already initialized!"); return;}
+        if (this.initialized) {console.log("S2Audio::init(): Already initialized"); return;}
         this.context = new AudioContext();
 
         // const name = this.newNode('TestEcho', Echo, {delay: 0.8, decay: 0.55});
@@ -1100,24 +1111,52 @@ class S2Audio {
         return c;
     }
 
+    registerConnection(source, dest, param) {
+
+    }
+
     /**
-     * Registers a connection from source to destination's paramter
-     * @param {string} name Destination name
-     * @param {string} param Destination parameter to affect
+     * Adds a connection from source to destination's paramter
      * @param {string} sourceName Source name
+     * @param {string} destName Destination name
+     * @param {string} param Destination parameter to affect
      */
-    addConnection(name, param, sourceName) {
-        console.log('addConnection', name, param, sourceName);
-        if (this.getConnectionByParam(name, param)) this.removeConnectionByParam(name, param);
-        if (this.getConnectionBySource(sourceName)) this.removeConnectionBySource(sourceName);
+    addConnection(sourceName, destName, param) {
+        console.log('addConnection', sourceName, destName, param);
+        if (this.getConnection(sourceName, destName, param)) {
+            console.warn('Failed to add connection: Already exists!', sourceName, destName, param);
+        } else {
+            const source = this.getFromName(sourceName);
+            const dest = this.getFromName(destName);
+            if (source && dest) {
+                const newConnection = new ParamConnection(source, dest, param);
+                if (newConnection.isValid) this.paramConnections.push(newConnection);
+            } else console.warn('Failed connection: Invalid reference!', source, receiver);
+        }
+
+
+        // if (this.getConnectionByParam(name, param)) this.removeConnectionByParam(name, param);
+        // if (this.getConnectionBySource(sourceName)) this.removeConnectionBySource(sourceName);
+        // const source = this.getFromName(sourceName);
+        // const receiver = this.getFromName(name);
+        // if (source && receiver) {
+        //     if (receiver.addConnection(param, source)) {
+        //         this.paramConnectionsByParam[name + '.' + param] = sourceName;
+        //         this.paramConnectionsBySource[sourceName] = {name, param};
+        //     } else console.warn('Failed connection: Rejected by receiver!', receiver);
+        // } else console.warn('Failed connection: Invalid reference!', source, receiver);
+    }
+
+    getConnection(sourceName, destName, param) {
         const source = this.getFromName(sourceName);
-        const receiver = this.getFromName(name);
-        if (source && receiver) {
-            if (receiver.addConnection(param, source)) {
-                this.paramConnectionsByParam[name + '.' + param] = sourceName;
-                this.paramConnectionsBySource[sourceName] = {name, param};
-            } else console.warn('Failed connection: Rejected by receiver!', receiver);
-        } else console.warn('Failed connection: Invalid reference!', source, receiver);
+        const dest = this.getFromName(destName);
+        if (source && dest) {
+            const testConnection = new ParamConnection(source, dest, param);
+            const existing = this.paramConnections.find((o) => testConnection.isEqualTo(o));
+            if (existing) {
+                return existing;
+            } else return null;
+        }
     }
 
     getConnectionsByParam() {

@@ -7,3 +7,5 @@
 
 // test('S2Audio can be instantiated', () => {
 // });
+
+import Param
