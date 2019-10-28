@@ -45,3 +45,13 @@ describe('Lerp', () => {
         });
     });
 });
+
+describe('ID Generator', () => {
+    test('exists', () => {
+        expect(util.newIdGenerator).toBeDefined();
+    });
+
+    test('is a function', () => {
+        expect(typeof util.newIdGenerator).toBe('function');
+    });
+});

@@ -6,7 +6,6 @@ const logHandler = function() {
 };
 
 
-
 const Echo = (props) => {
     const echo = props.interface.getFromName(props.name);
     return (

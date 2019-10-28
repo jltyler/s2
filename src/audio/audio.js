@@ -1,7 +1,7 @@
-import Sequences from './sequences';
-import {bind as bindKeys, unbind as unbindKeys, release as releaseKeys} from './keys';
-import {NOTES, ALPHA} from './notes';
-import {newIdGenerator} from '../Utility';
+import Sequences from './sequences.js';
+import {bind as bindKeys, unbind as unbindKeys, release as releaseKeys} from './keys.js';
+import {NOTES, ALPHA} from './notes.js';
+import {newIdGenerator} from '../Utility.js';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const notePlannerInterval = 100; // Delay between planning notes
@@ -155,10 +155,17 @@ class Envelope {
         }).bind(this);
     }
 
+    /**
+     * Set envelope option (if it exists)
+     * @param {('attack'|'decay'|'sustain'|'length'|'release'|'scale'|'base')} key Option to set
+     * @param {number|boolean} value Value
+     * @returns {boolean} True if option was set, false otherwise
+     */
     setOption(key, value) {
         if (key in this.options) {
             this.options[key] = value;
-        }
+            return true;
+        } else return false;
     }
 
     getOption(key) {
@@ -177,7 +184,7 @@ const defaultLFO = {
     singular: false
 };
 
-/** =========================================================================
+/**
  * Holds and creates oscillators that are used for connecting to AudioParams.
  * Can receive connections from other LFOs or other connection classes
  */
@@ -241,20 +248,28 @@ class LFO {
 
     connectFrequency(osc) {
         if (this.connections.frequency) {
-            this.connections.frequency.connect(osc.detune);
+            this.connections.frequency.forEach((f) => {
+                f.connect(osc.detune);
+            });
         }
     }
 
     connectAmplitude(gain) {
         if (this.connections.amplitude) {
-            this.connections.amplitude.connect(gain.gain);
+            this.connections.amplitude.forEach((a) => {
+                a.connect(gain.gain);
+            });
         }
     }
 
     addConnection(param, source) {
         if (param in this.connections) {
             if (source instanceof LFO || source instanceof Envelope) {
-                this.connections[param] = source;
+                if (this.connections[param]) {
+                    this.connections[param].push(source);
+                } else {
+                    this.connections[param] = [source];
+                }
                 return true;
             } else {
                 console.warn(`Source is NOT a valid connector!`);
@@ -276,9 +291,20 @@ class LFO {
         return this.connections;
     }
 
-    removeConnection(param) {
+    removeConnection(param, source) {
         if (param in this.connections) {
-            this.connections[param] = null;
+            const paramList = this.connections[param];
+            if (!paramList) return false;
+            if (source) {
+                if (paramList.includes(source)) {
+                    paramList.splice(paramList.indexOf(source), 1);
+                    return true;
+                } else return false;
+            }
+            if (!source || paramList.length === 0) {
+                this.connections[param] = null;
+                return true;
+            }
         }
     }
 
@@ -419,7 +445,11 @@ class Filter {
     addConnection(param, source) {
         if (param in this.connections) {
             if (source instanceof LFO || source instanceof Envelope) {
-                this.connections[param] = source;
+                if (this.connections[param]) {
+                    this.connections[param].push(source);
+                } else {
+                    this.connections[param] = [source];
+                }
                 return true;
             } else {
                 console.warn(`Source is NOT a valid connector!`);
@@ -443,23 +473,45 @@ class Filter {
 
     removeConnection(param) {
         if (param in this.connections) {
-            this.connections[param] = null;
+            const paramList = this.connections[param];
+            if (!paramList) return false;
+            if (source) {
+                if (paramList.includes(source)) {
+                    paramList.splice(paramList.indexOf(source), 1);
+                    return true;
+                } else return false;
+            }
+            if (!source || paramList.length === 0) {
+                this.connections[param] = null;
+                return true;
+            }
         }
     }
 
     connectParams(filter) {
         if (this.connections.frequency) {
-            this.connections.frequency.connect(filter.detune);
+            this.connections.frequency.forEach((f) => {
+                f.connect(filter.detune);
+            });
         }
         if (this.connections.Q) {
-            this.connections.Q.connect(filter.Q);
+            this.connections.Q.forEach((q) => {
+                q.connect(filter.Q);
+            });
         }
     }
 
+    /**
+     * Set filter option (if it exists)
+     * @param {('type'|'frequency'|'Q'|'gain'|'destination')} key Option to set
+     * @param {number|boolean} value Value
+     * @returns {boolean} True if option was set, false otherwise
+     */
     setOption(key, value) {
         if (key in this.options) {
             this.options[key] = value;
-        }
+            return true;
+        } else return false;
     }
 
     getOption(key) {
@@ -499,7 +551,7 @@ const stopOscs = (osc, stopTime = 0) => {
     }
 };
 
-/** =========================================================================
+/**
  * Holds voice information and creates oscillators
  */
 class Voice {
@@ -531,6 +583,9 @@ class Voice {
         this.playing = {};
         this.getOscId = newIdGenerator();
 
+        /**
+         * Current connections that will be accessed when played
+         * @var {Object} */
         this.connections = {
             'detune': null,
             'pan': null,
@@ -625,13 +680,17 @@ class Voice {
 
     connectOscParams (osc) {
         if (this.connections.detune) {
-            this.connections.detune.connect(osc.detune);
+            this.connections.detune.forEach((d) => {
+                d.connect(osc.detune);
+            });
         }
     }
 
     connectParams(pan) {
         if (this.connections.pan) {
-            this.connections.pan.connect(pan.pan);
+            this.connections.pan.forEach((p) => {
+                p.connect(pan.pan);
+            });
         }
     }
 
@@ -673,7 +732,11 @@ class Voice {
     addConnection(param, source) {
         if (param in this.connections) {
             if (source instanceof LFO || source instanceof Envelope) {
-                this.connections[param] = source;
+                if (this.connections[param]) {
+                    this.connections[param].push(source);
+                } else {
+                    this.connections[param] = [source];
+                }
                 return true;
             } else {
                 console.warn(`Source is NOT a valid connector!`);
@@ -695,16 +758,34 @@ class Voice {
         return this.connections;
     }
 
-    removeConnection(param) {
+    removeConnection(param, source) {
         if (param in this.connections) {
-            this.connections[param] = null;
+            const paramList = this.connections[param];
+            if (!paramList) return false;
+            if (source) {
+                if (paramList.includes(source)) {
+                    paramList.splice(paramList.indexOf(source), 1);
+                    return true;
+                } else return false;
+            }
+            if (!source || paramList.length === 0) {
+                this.connections[param] = null;
+                return true;
+            }
         }
     }
 
+    /**
+     * Set voice option (if it exists)
+     * @param {('waveform'|'octave'|'detune'|'gain'|'pan'|'unison'|'unisonSpread'|'destination'|'useEnvelope'|'attack'|'decay'|'sustain'|'release')} key Option to set
+     * @param {number|string|boolean} value New value
+     * @returns {boolean} True if option was set, false otherwise
+     */
     setOption(key, value) {
         if (key in this.options) {
             this.options[key] = value;
-        }
+            return true;
+        } else return false;
     }
 
     getOption(key) {
@@ -789,7 +870,7 @@ class NotePlanner {
 class ParamConnection {
     constructor(source, dest, param) {
         if (source instanceof Envelope || source instanceof LFO) {
-            if (dest instanceof LFO || dest instanceof Filter) {
+            if (dest instanceof LFO || dest instanceof Filter || dest instanceof Voice) {
                 if (dest.addConnection(param, source)) {
                     this.source = source;
                     this.dest = dest;
@@ -797,7 +878,7 @@ class ParamConnection {
                     this.isValid = true;
                 }
             } else {
-                console.warn(`ParamConnection::ParamConnection(): ${} is not a valid class destination`);
+                console.warn(`ParamConnection::ParamConnection(): ${dest} is not a valid class for destination`);
             }
         } else {
             console.warn(`ParamConnection::ParamConnection(): Invalid source`);
@@ -811,14 +892,16 @@ class ParamConnection {
         return false;
     }
 
-
+    remove() {
+        this.dest.removeConnection(this.param, this.source);
+    }
 
     // connect() {
 
     // }
 }
 
-/** ===========================================================================
+/**
  * Main audio controller for s2. You must call init() after creating this and before anything else
  */
 class S2Audio {
@@ -934,23 +1017,26 @@ class S2Audio {
         return o;
     }
 
-    getVoice(name) {
-        if (name in this.voices) return this.voices[name];
-    }
-
-    getVoices() {
-        return this.voices;
-    }
-
+    /**
+     * Renames a node
+     * @param {string} name Original name
+     * @param {string} newName New name
+     * @returns {string} Assigned name
+     */
     rename(name, newName) {
         const l = this.getTypeList(name);
         if (l) {
             newName = firstNameAvailable(newName);
             l[newName] = l[name];
             delete l[name];
+            return newName;
         }
     }
 
+    /**
+     * Removes a node
+     * @param {string} name Name of node
+     */
     remove(name) {
         const l = this.getTypeList(name);
         if (l) {
@@ -1070,7 +1156,7 @@ class S2Audio {
      * @returns {Filter} Filter object reference
      */
     getFilter(name) {
-        if (name in this.filter) return this.filter[name];
+        if (name in this.filters) return this.filters[name];
     }
 
     getFilters() {
@@ -1111,10 +1197,6 @@ class S2Audio {
         return c;
     }
 
-    registerConnection(source, dest, param) {
-
-    }
-
     /**
      * Adds a connection from source to destination's paramter
      * @param {string} sourceName Source name
@@ -1124,7 +1206,7 @@ class S2Audio {
     addConnection(sourceName, destName, param) {
         console.log('addConnection', sourceName, destName, param);
         if (this.getConnection(sourceName, destName, param)) {
-            console.warn('Failed to add connection: Already exists!', sourceName, destName, param);
+            console.warn('Failed to add connection: Already exists!', `${sourceName} -> ${destName}.${param}`);
         } else {
             const source = this.getFromName(sourceName);
             const dest = this.getFromName(destName);
@@ -1147,6 +1229,13 @@ class S2Audio {
         // } else console.warn('Failed connection: Invalid reference!', source, receiver);
     }
 
+    /**
+     * Finds a connection
+     * @param {string} sourceName Source name
+     * @param {string} destName Destination name
+     * @param {string} param Destination parameter
+     * @returns {null|ParamConnection} Connection or null
+     */
     getConnection(sourceName, destName, param) {
         const source = this.getFromName(sourceName);
         const dest = this.getFromName(destName);
@@ -1157,6 +1246,18 @@ class S2Audio {
                 return existing;
             } else return null;
         }
+    }
+
+    removeConnection(sourceName, destName, param) {
+        const existing = this.getConnection(sourceName, destName, param);
+        if (existing) {
+            existing.remove();
+            this.connections.slice(this.connections.find());
+
+        }
+        const source = this.getFromName(sourceName);
+        const dest = this.getFromName(destName);
+
     }
 
     getConnectionsByParam() {
