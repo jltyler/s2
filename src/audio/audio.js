@@ -7,13 +7,27 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const notePlannerInterval = 100; // Delay between planning notes
 const notePlannerBuffer = .25; // Notes are plannesd this far in advance (in seconds)
 
+// Wow maybe I should separate some of this ridiculous pile into other files huh?
+
 const defaultEcho = {
-    delay: 0.2,
+    delay: 0.25,
     decay: 0.66
 };
 
+/**
+ * Echo node with a decay and delay option. Sends signal to destination and dampened signal to delay node that loops back
+ */
 class Echo {
-    constructor(context, options = {}) {
+    /**
+     * Creates new Echo node
+     * @param {name} name Name of node
+     * @param {AudioContext} context AudioContext reference
+     * @param {Object} options Options object
+     * @param {number} options.decay Gain node value for dampening of signal. Default: 0.66
+     * @param {number} options.delay Delay in seconds. Default: 0.25
+     */
+    constructor(name, context, options = {}) {
+        this.setName(name);
         this.context = context;
         this.options = Object.assign({}, defaultEcho, options);
         this.delay = this.context.createDelay();
@@ -64,29 +78,37 @@ class Echo {
     }
 }
 
+/**
+ * Checks destination validity and returns a valid destination. Falls back to context destination
+ * @param {AudioNode|Echo|Filter} destination Destination node
+ * @param {AudioContext} context AudioContext reference
+ */
 const getFinalDestination = (destination, context) => {
     if (destination) {
         if (destination instanceof AudioNode) return destination;
         else if (destination instanceof Echo || destination instanceof Filter) return destination.getDestination();
     }
     return context.destination;
-}
+};
 
 class ParamConnectionSource {
     constructor() {
         this.source = null;
         this.connections = [];
     }
-    newSource(source) {
+
+    setSource(source) {
         if (source instanceof AudioScheduledSourceNode) {
             this.source = source;
         }
     }
-    connectSourceTo(dest) {
+
+    connect(dest) {
         if (dest instanceof AudioParam) {
             this.source.connect();
         }
     }
+
     disconnectSourceFrom(dest) {
         this.source.disconnect(dest);
     }
@@ -103,20 +125,25 @@ const defaultEnvelope = {
     useRelease: false
 };
 
+/**
+ * Envelope class that generates a single envelope that fires immediately
+ */
 class Envelope {
     /**
      * Create a new Envelope
      * @param {string} name Name of the envelope
+     * @param {AudioContext} context AudioContext reference
      * @param {Object} options Envelope options object
      * @param {number} options.attack Attack length
      * @param {number} options.decay Decay length
      * @param {number} options.sustain Sustain level
      * @param {number} options.length Sustain length
      * @param {number} options.release Release length
-     * @param {number} options.scale Output multiplier
+     * @param {number} options.scale Output multiplier. Value when envelope at 1.0
      * @param {number} options.base Base level value to start from
      */
-    constructor(context, options = {}) {
+    constructor(name, context, options = {}) {
+        this.setName(name);
         if (!context) console.error('Envelope::Envelope(): Invalid audioContext!');
         this.context = context;
         this.options = {...defaultEnvelope, ...options};
@@ -192,12 +219,14 @@ class LFO {
     /**
      * Create a new LFO
      * @param {string} name Name of the LFO
+     * @param {AudioContext} context AudioContext reference
      * @param {Object} options LFO options object
      * @param {string} options.waveform String representing LFO waveform. Default: 'sine'
      * @param {number} options.frequency Oscillation frequency. Default: 1
      * @param {number} options.amplitude Output multiplier. Output ranges from (1 * amplitude) to (-1 * amplitude)  Default: 10
      */
-    constructor(context, options = {}) {
+    constructor(name, context, options = {}) {
+        this.setName(name);
         if (!context) console.error('LFO::LFO(): Invalid audioContext!');
         this.context = context;
         this.options = Object.assign({}, defaultLFO, options);
@@ -320,8 +349,8 @@ const defaultGainEnvelope = {
     release: 2.0,
 };
 
-/** =========================================================================
- * Stores gain envelope information. Creates GainNodes and schedules changes on the gain AudioParam
+/**
+ * Gain envelope to schedule gain changes. Exclusively used by Voice atm. To be removed eventually
  */
 class GainEnvelope {
     /**
@@ -384,28 +413,22 @@ class GainEnvelope {
     }
 }
 
-const defaultFilterEnvelope = {
-    attack: 0.01,
-    decay: 0.01,
-    sustain: 1.0,
-    release: 0.01,
-    type: 'highpass',
-    freq: 22500,
-    Q: 1
-};
-
 const defaultFilterOptions = {
     type: 'lowpass',
     frequency: 22050,
     Q: 1,
     gain: 0,
     destination: null,
-}
+};
 
+/**
+ * Filter node wrapper for the BiquadFilterNode
+ */
 class Filter {
     /**
      * Create a new filter
      * @param {string} name Name of the filter
+     * @param {AudioContext} context AudioContext reference
      * @param {Object} options Filter options object
      * @param {string} options.type String representing filter type. Default: 'lowpass'
      * @param {number} options.frequency Target frequency of filter. Default: 22500
@@ -557,8 +580,8 @@ const stopOscs = (osc, stopTime = 0) => {
 class Voice {
     /**
      * Create a new voice
-     * @param {string} name Name of the voice
-     * @param {Object} options Voice options object
+     * @param {AudioContext} context AudioContext reference
+     * @param {Object} options Options object
      * @param {string} options.waveform String representing waveform type. Default: 'sawtooth'
      * @param {number} options.octave Increase or decrease by octaves. Default: 0
      * @param {number} options.detune Detune measured in semitones. Default: 0
@@ -958,6 +981,7 @@ class S2Audio {
     /**
      * Get reference to s2 node from name. Returns null if name isn't found
      * @param {string} name Name of node
+     * @returns {Voice|LFO|Envelope|Filter|Echo} Node reference or null
      */
     getFromName(name) {
         if (name in this.voices) return this.voices[name];
@@ -999,7 +1023,7 @@ class S2Audio {
         return name;
     }
 
-    newNode(name = 'Node', type=Echo, options = {}) {
+    newNode(name = 'Node', type = Echo, options = {}) {
         name = this.firstNameAvailable(name);
         this.nodes[name] = new type(this.context, options);
         this.nodes[name].setName(name);
@@ -1043,7 +1067,6 @@ class S2Audio {
             delete l[name];
         }
     }
-
 
     /**
      * Create a new named voice and store it in this.voices.
@@ -1177,8 +1200,9 @@ class S2Audio {
 
     // User interface information and config functions
     /**
-     * Return an array of strings representing currently available connection receivers
+     * Returns array of strings representing valid connection destinations and parameters
      * @param {string} exclude Name to exclude
+     * @returns {string[]} Array of strings in format 'destinationName.parameterName'
      */
     getAvailableConnections(exclude) {
         const c = [];
@@ -1215,18 +1239,6 @@ class S2Audio {
                 if (newConnection.isValid) this.paramConnections.push(newConnection);
             } else console.warn('Failed connection: Invalid reference!', source, receiver);
         }
-
-
-        // if (this.getConnectionByParam(name, param)) this.removeConnectionByParam(name, param);
-        // if (this.getConnectionBySource(sourceName)) this.removeConnectionBySource(sourceName);
-        // const source = this.getFromName(sourceName);
-        // const receiver = this.getFromName(name);
-        // if (source && receiver) {
-        //     if (receiver.addConnection(param, source)) {
-        //         this.paramConnectionsByParam[name + '.' + param] = sourceName;
-        //         this.paramConnectionsBySource[sourceName] = {name, param};
-        //     } else console.warn('Failed connection: Rejected by receiver!', receiver);
-        // } else console.warn('Failed connection: Invalid reference!', source, receiver);
     }
 
     /**
@@ -1248,16 +1260,23 @@ class S2Audio {
         }
     }
 
+    /**
+     * Removes a connection
+     * @param {string} sourceName Source name
+     * @param {string} destName Destination name
+     * @param {string} param Destination parameter
+     * @returns {boolean} True if a connection was found and removed
+     */
     removeConnection(sourceName, destName, param) {
         const existing = this.getConnection(sourceName, destName, param);
         if (existing) {
+            console.log(`Removing connection...`);
+            console.log(`Before removal:`, this.connections);
+            this.connections.slice(this.connections.find(existing));
+            console.log(`After removal:`, this.connections);
             existing.remove();
-            this.connections.slice(this.connections.find());
-
-        }
-        const source = this.getFromName(sourceName);
-        const dest = this.getFromName(destName);
-
+            return true;
+        } else return false;
     }
 
     getConnectionsByParam() {
@@ -1314,7 +1333,7 @@ class S2Audio {
     addAudioConnection(source, destination) {
         const s = this.getFromName(source);
         const d = this.getFromName(destination);
-        if ( s && d ) {
+        if (s && d) {
             this.audioConnections[source] = destination;
             s.setOption('destination', d);
         }
