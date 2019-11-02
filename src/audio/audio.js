@@ -26,8 +26,7 @@ class Echo {
      * @param {number} options.decay Gain node value for dampening of signal. Default: 0.66
      * @param {number} options.delay Delay in seconds. Default: 0.25
      */
-    constructor(name, context, options = {}) {
-        this.setName(name);
+    constructor(context, options = {}) {
         this.context = context;
         this.options = Object.assign({}, defaultEcho, options);
         this.delay = this.context.createDelay();
@@ -142,8 +141,7 @@ class Envelope {
      * @param {number} options.scale Output multiplier. Value when envelope at 1.0
      * @param {number} options.base Base level value to start from
      */
-    constructor(name, context, options = {}) {
-        this.setName(name);
+    constructor(context, options = {}) {
         if (!context) console.error('Envelope::Envelope(): Invalid audioContext!');
         this.context = context;
         this.options = {...defaultEnvelope, ...options};
@@ -225,8 +223,7 @@ class LFO {
      * @param {number} options.frequency Oscillation frequency. Default: 1
      * @param {number} options.amplitude Output multiplier. Output ranges from (1 * amplitude) to (-1 * amplitude)  Default: 10
      */
-    constructor(name, context, options = {}) {
-        this.setName(name);
+    constructor(context, options = {}) {
         if (!context) console.error('LFO::LFO(): Invalid audioContext!');
         this.context = context;
         this.options = Object.assign({}, defaultLFO, options);
@@ -915,6 +912,11 @@ class ParamConnection {
         return false;
     }
 
+    isEquivalent(source, dest, param) {
+        if (this.source === source && this.dest === dest && this.param === param) return true;
+        else return false;
+    }
+
     remove() {
         this.dest.removeConnection(this.param, this.source);
     }
@@ -942,6 +944,8 @@ class S2Audio {
         this.paramConnectionsBySource = {}; // I'm desperate to think of another way of doing this
         this.audioConnections = {};
 
+        this.releaseKeys = () => null;
+
         // In case these are called from DOM events
         this.init = this.init.bind(this);
         this.stop = this.stop.bind(this);
@@ -968,18 +972,18 @@ class S2Audio {
     }
 
     /**
-     * Stop all noise
+     * Stop all noise and release keys
      */
     stop() {
         for (name in this.voices) {
             this.voices[name].stopAll();
         }
         this.playing = {};
-        releaseKeys();
+        this.releaseKeys();
     }
 
     /**
-     * Get reference to s2 node from name. Returns null if name isn't found
+     * Get reference to node from name. Returns null if not found
      * @param {string} name Name of node
      * @returns {Voice|LFO|Envelope|Filter|Echo} Node reference or null
      */
@@ -992,6 +996,11 @@ class S2Audio {
         else return null;
     }
 
+    /**
+     * Returns reference to corresponding dict from node name. Returns null if not found
+     * @param {string} name Name of node
+     * @returns {any[]} Node dict reference or null
+     */
     getTypeList(name) {
         if (name in this.voices) return this.voices;
         else if (name in this.LFOs) return this.LFOs;
@@ -1001,6 +1010,10 @@ class S2Audio {
         else return null;
     }
 
+    /**
+     * Returns object containing all node dicts
+     * @returns {Object} Node list object with named keys
+     */
     getAllNodes() {
         return {
             voices: this.voices,
@@ -1030,6 +1043,11 @@ class S2Audio {
         return name;
     }
 
+    /**
+     * Returns nodes that match type given
+     * @param {Function} type Class base. instanceof operator is used for comparison
+     * @returns {Object} Node object with named keys
+     */
     getNodesOfType(type) {
         const o = {};
         for (name in this.nodes) {
@@ -1045,7 +1063,7 @@ class S2Audio {
      * Renames a node
      * @param {string} name Original name
      * @param {string} newName New name
-     * @returns {string} Assigned name
+     * @returns {string|null} Assigned name or null if not found
      */
     rename(name, newName) {
         const l = this.getTypeList(name);
@@ -1055,6 +1073,7 @@ class S2Audio {
             delete l[name];
             return newName;
         }
+        return null;
     }
 
     /**
@@ -1226,9 +1245,10 @@ class S2Audio {
      * @param {string} sourceName Source name
      * @param {string} destName Destination name
      * @param {string} param Destination parameter to affect
+     * @returns {ParamConnection} ParamConnection instance
      */
     addConnection(sourceName, destName, param) {
-        console.log('addConnection', sourceName, destName, param);
+        // console.log('addConnection', sourceName, destName, param);
         if (this.getConnection(sourceName, destName, param)) {
             console.warn('Failed to add connection: Already exists!', `${sourceName} -> ${destName}.${param}`);
         } else {
@@ -1252,8 +1272,8 @@ class S2Audio {
         const source = this.getFromName(sourceName);
         const dest = this.getFromName(destName);
         if (source && dest) {
-            const testConnection = new ParamConnection(source, dest, param);
-            const existing = this.paramConnections.find((o) => testConnection.isEqualTo(o));
+            // const testConnection = new ParamConnection(source, dest, param);
+            const existing = this.paramConnections.find((o) => o.isEquivalent(source, dest, param));
             if (existing) {
                 return existing;
             } else return null;
@@ -1270,10 +1290,8 @@ class S2Audio {
     removeConnection(sourceName, destName, param) {
         const existing = this.getConnection(sourceName, destName, param);
         if (existing) {
-            console.log(`Removing connection...`);
-            console.log(`Before removal:`, this.connections);
-            this.connections.slice(this.connections.find(existing));
-            console.log(`After removal:`, this.connections);
+            // console.log(`Removing connection...`);
+            this.paramConnections.splice(this.paramConnections.indexOf((o) => o === existing));
             existing.remove();
             return true;
         } else return false;
@@ -1387,6 +1405,7 @@ class S2Audio {
                 voices.forEach((v) => v[0].release(v[1]));
             }).bind(this)
         );
+        this.releaseKeys = releaseKeys;
     }
 
     /**
@@ -1394,6 +1413,7 @@ class S2Audio {
      */
     keysOff() {
         unbindKeys();
+        this.releaseKeys = () => null;
     }
 
     // BIN THIS (soon)
