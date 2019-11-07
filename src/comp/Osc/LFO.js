@@ -1,6 +1,7 @@
 import React from 'react';
 import {Knob} from '../Controls/Knobs';
 import './LFOs.css';
+import ParamConnection from '../Controls/ParamConnection';
 
 const logHandler = function() {
     console.log(arguments);
@@ -35,7 +36,7 @@ const getConnection = (iface, LFO) => {
 };
 
 const LFO = (props) => {
-    const lfo = props.interface.getLFO(props.name);
+    const lfo = props.s2.getLFO(props.name);
     return (
         <div className="LFO">
         <h2>{props.name}</h2>
@@ -43,10 +44,11 @@ const LFO = (props) => {
             <Knob label="Amplitude" handler={setAmplitude.bind(null, lfo)} min={0.01} max={1000} />
             Waveform
             Destination
-            <select onChange={setConnection.bind(null, lfo, props.interface, props.update)} value={getConnection(props.interface, lfo)} >
+            <ParamConnection s2={props.s2} name={props.name} />
+            {/* <select onChange={setConnection.bind(null, lfo, props.s2, props.update)} value={getConnection(props.s2, lfo)} >
                 <option key="none" value="none">No connection</option>
-                {props.interface.getAvailableConnections(props.name).map((c, i) => <option key={i} value={c}>{c}</option>)}
-            </select>
+                {props.s2.getAvailableConnections(props.name).map((c, i) => <option key={i} value={c}>{c}</option>)}
+            </select> */}
         </div>
     );
 };

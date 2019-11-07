@@ -1,5 +1,6 @@
 import React from 'react';
 import {Knob} from '../Controls/Knobs';
+import ParamConnection from '../Controls/ParamConnection';
 
 const logHandler = function() {
     console.log(arguments);
@@ -30,7 +31,7 @@ const getConnection = (envelope, iface) => {
 };
 
 const Envelope = (props) => {
-    const envelope = props.interface.getEnvelope(props.name);
+    const envelope = props.s2.getEnvelope(props.name);
     return (
     <div className="envelope">
         <h2>{props.name}</h2>
@@ -44,10 +45,11 @@ const Envelope = (props) => {
             <Knob label="Scale" handler={setEnvelopeOption.bind(null, envelope, 'scale')} min={-1000.0} max={1000.0} />
             <Knob label="Length" handler={setEnvelopeOption.bind(null, envelope, 'length')} min={0.0} max={10.0} />
             Destination
-            <select onChange={setConnection.bind(null, envelope, props.interface, props.update)} value={getConnection(envelope, props.interface)} >
+            <ParamConnection s2={props.s2} name={props.name} />
+            {/* <select onChange={setConnection.bind(null, envelope, props.interface, props.update)} value={getConnection(envelope, props.interface)} >
                 <option key="none" value="none">No connection</option>
                 {props.interface.getAvailableConnections(props.name).map((c, i) => <option key={i} value={c}>{c}</option>)}
-            </select>
+            </select> */}
         </div>
 
     </div>

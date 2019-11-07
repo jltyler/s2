@@ -99,3 +99,17 @@
 .switch.off {
     background-color: red;
 }
+
+.param-connection-list {
+    border: 2px solid blue;
+    padding: 3px;
+}
+
+.param-connection-list .switch {
+    width: 24px;
+    height: 16px;
+}
+
+.param-connection-list > li {
+    border: 1px solid purple;
+}

@@ -1221,9 +1221,9 @@ class S2Audio {
     /**
      * Returns array of strings representing valid connection destinations and parameters
      * @param {string} exclude Name to exclude
-     * @returns {string[]} Array of strings in format 'destinationName.parameterName'
+     * @returns {Array[]} Array of string tuples: [destinationName, parameterName]
      */
-    getAvailableConnections(exclude) {
+    getParamConnectionDestinations(exclude) {
         const c = [];
         const combo = [
             ...Object.keys(this.voices),
@@ -1234,7 +1234,7 @@ class S2Audio {
             if (name === exclude) continue;
             const connections = this.getFromName(name).getConnections();
             for (const param in connections) {
-                c.push(name + '.' + param);
+                c.push([name, param]);
             }
         }
         return c;
@@ -1294,7 +1294,10 @@ class S2Audio {
             this.paramConnections.splice(this.paramConnections.indexOf((o) => o === existing));
             existing.remove();
             return true;
-        } else return false;
+        } else {
+            console.warn(`did not find connection`, sourceName, destName, param);
+            return false;
+        }
     }
 
     getConnectionsByParam() {

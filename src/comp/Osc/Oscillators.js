@@ -82,13 +82,13 @@ class Oscillators extends Component {
 
     renderLFOs() {
         return Object.keys(this.interface.getLFOs()).map((name) => {
-            return <LFO name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
+            return <LFO name={name} key={name} s2={this.interface} update={this.update.bind(this)} />;
         });
     }
 
     renderEnvelopes() {
         return Object.keys(this.interface.getEnvelopes()).map((name) => {
-            return <Envelope name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
+            return <Envelope name={name} key={name} s2={this.interface} update={this.update.bind(this)} />;
         });
     }
 
