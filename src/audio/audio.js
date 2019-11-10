@@ -2,6 +2,7 @@ import Sequences from './sequences.js';
 import {bind as bindKeys, unbind as unbindKeys, release as releaseKeys} from './keys.js';
 import {NOTES, ALPHA} from './notes.js';
 import {newIdGenerator} from '../Utility.js';
+import { notStrictEqual } from 'assert';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 const notePlannerInterval = 100; // Delay between planning notes
@@ -318,20 +319,20 @@ class LFO {
     }
 
     removeConnection(param, source) {
+        console.log(this.name + '.removeConnection');
+        console.log('param:', param);
+        console.log('source:', source);
         if (param in this.connections) {
             const paramList = this.connections[param];
-            if (!paramList) return false;
-            if (source) {
-                if (paramList.includes(source)) {
-                    paramList.splice(paramList.indexOf(source), 1);
-                    return true;
-                } else return false;
-            }
-            if (!source || paramList.length === 0) {
-                this.connections[param] = null;
+            if (paramList && source && paramList.includes(source)) {
+                paramList.splice(paramList.indexOf(source), 1);
+                if (paramList.length === 0) {
+                    this.connections[param] = null;
+                }
                 return true;
             }
         }
+        return false;
     }
 
     setName(name) {
@@ -482,7 +483,7 @@ class Filter {
     }
 
     getConnection(param) {
-        if (param in this.connections) {
+        if (param in this.connections) {qq
             return this.connections[param];
         }
     }
@@ -491,21 +492,21 @@ class Filter {
         return this.connections;
     }
 
-    removeConnection(param) {
+    removeConnection(param, source) {
+        console.log(this.name + '.removeConnection');
+        console.log('param:', param);
+        console.log('source:', source);
         if (param in this.connections) {
             const paramList = this.connections[param];
-            if (!paramList) return false;
-            if (source) {
-                if (paramList.includes(source)) {
-                    paramList.splice(paramList.indexOf(source), 1);
-                    return true;
-                } else return false;
-            }
-            if (!source || paramList.length === 0) {
-                this.connections[param] = null;
+            if (paramList && source && paramList.includes(source)) {
+                paramList.splice(paramList.indexOf(source), 1);
+                if (paramList.length === 0) {
+                    this.connections[param] = null;
+                }
                 return true;
             }
         }
+        return false;
     }
 
     connectParams(filter) {
@@ -779,20 +780,20 @@ class Voice {
     }
 
     removeConnection(param, source) {
+        console.log(this.name + '.removeConnection');
+        console.log('param:', param);
+        console.log('source:', source);
         if (param in this.connections) {
             const paramList = this.connections[param];
-            if (!paramList) return false;
-            if (source) {
-                if (paramList.includes(source)) {
-                    paramList.splice(paramList.indexOf(source), 1);
-                    return true;
-                } else return false;
-            }
-            if (!source || paramList.length === 0) {
-                this.connections[param] = null;
+            if (paramList && source && paramList.includes(source)) {
+                paramList.splice(paramList.indexOf(source), 1);
+                if (paramList.length === 0) {
+                    this.connections[param] = null;
+                }
                 return true;
             }
         }
+        return false;
     }
 
     /**
@@ -1012,7 +1013,6 @@ class S2Audio {
 
     /**
      * Returns object containing all node dicts
-     * @returns {Object} Node list object with named keys
      */
     getAllNodes() {
         return {
@@ -1248,7 +1248,6 @@ class S2Audio {
      * @returns {ParamConnection} ParamConnection instance
      */
     addConnection(sourceName, destName, param) {
-        // console.log('addConnection', sourceName, destName, param);
         if (this.getConnection(sourceName, destName, param)) {
             console.warn('Failed to add connection: Already exists!', `${sourceName} -> ${destName}.${param}`);
         } else {
@@ -1272,7 +1271,6 @@ class S2Audio {
         const source = this.getFromName(sourceName);
         const dest = this.getFromName(destName);
         if (source && dest) {
-            // const testConnection = new ParamConnection(source, dest, param);
             const existing = this.paramConnections.find((o) => o.isEquivalent(source, dest, param));
             if (existing) {
                 return existing;
@@ -1290,8 +1288,7 @@ class S2Audio {
     removeConnection(sourceName, destName, param) {
         const existing = this.getConnection(sourceName, destName, param);
         if (existing) {
-            // console.log(`Removing connection...`);
-            this.paramConnections.splice(this.paramConnections.indexOf((o) => o === existing));
+            this.paramConnections.splice(this.paramConnections.indexOf(existing), 1);
             existing.remove();
             return true;
         } else {
@@ -1300,46 +1297,72 @@ class S2Audio {
         }
     }
 
-    getConnectionsByParam() {
-        return this.paramConnectionsByParam;
-    }
-
-    getConnectionsBySource() {
-        return this.paramConnectionsBySource;
-    }
-
-    getConnectionBySource(sourceName) {
-        if (sourceName in this.paramConnectionsBySource) {
-            return this.paramConnectionsBySource[sourceName];
-        } else return null;
-    }
-
-    getConnectionByParam(name, param) {
-        const joined = name + '.' + param;
-        if (joined in this.paramConnectionsByParam) {
-            return this.paramConnectionsByParam[joined];
-        } else return null;
-    }
-
-    removeConnectionByParam(name, param) {
-        console.log('removeConnectionByParam', name, param);
-        const joined = name + '.' + param;
-        if (joined in this.paramConnectionsByParam) {
-            this.getFromName(name).removeConnection(param);
-            delete this.paramConnectionsBySource[this.paramConnectionsByParam[joined]];
-            delete this.paramConnectionsByParam[joined];
+    getConnectionsDebug() {
+        const allNodes = this.getAllNodes();
+        const ret = [];
+        for(const type in allNodes) {
+            const nodes = allNodes[type];
+            for (const name in nodes) {
+                const node = nodes[name];
+                if (node.connections) {
+                    for (const param in node.connections) {
+                        const s = name + '.' + param + ':';
+                        if (node.connections[param]) {
+                            for (const connected of node.connections[param]) {
+                                s += ' ' + connected.name;
+                            }
+                        } else s += 'null';
+                        ret.push(s);
+                    }
+                }
+            }
         }
+        return [
+            this.paramConnections.slice(),
+            ret
+        ];
     }
 
-    removeConnectionBySource(sourceName) {
-        console.log('removeConnectionBySource', sourceName);
-        if (sourceName in this.paramConnectionsBySource) {
-            const r = this.paramConnectionsBySource[sourceName];
-            this.getFromName(r.name).removeConnection(r.param);
-            delete this.paramConnectionsByParam[r.name + '.' + r.param];
-            delete this.paramConnectionsBySource[sourceName];
-        }
-    }
+    // getConnectionsByParam() {
+    //     return this.paramConnectionsByParam;
+    // }
+
+    // getConnectionsBySource() {
+    //     return this.paramConnectionsBySource;
+    // }
+
+    // getConnectionBySource(sourceName) {
+    //     if (sourceName in this.paramConnectionsBySource) {
+    //         return this.paramConnectionsBySource[sourceName];
+    //     } else return null;
+    // }
+
+    // getConnectionByParam(name, param) {
+    //     const joined = name + '.' + param;
+    //     if (joined in this.paramConnectionsByParam) {
+    //         return this.paramConnectionsByParam[joined];
+    //     } else return null;
+    // }
+
+    // removeConnectionByParam(name, param) {
+    //     console.log('removeConnectionByParam', name, param);
+    //     const joined = name + '.' + param;
+    //     if (joined in this.paramConnectionsByParam) {
+    //         this.getFromName(name).removeConnection(param);
+    //         delete this.paramConnectionsBySource[this.paramConnectionsByParam[joined]];
+    //         delete this.paramConnectionsByParam[joined];
+    //     }
+    // }
+
+    // removeConnectionBySource(sourceName) {
+    //     console.log('removeConnectionBySource', sourceName);
+    //     if (sourceName in this.paramConnectionsBySource) {
+    //         const r = this.paramConnectionsBySource[sourceName];
+    //         this.getFromName(r.name).removeConnection(r.param);
+    //         delete this.paramConnectionsByParam[r.name + '.' + r.param];
+    //         delete this.paramConnectionsBySource[sourceName];
+    //     }
+    // }
 
     getAvailableAudioConnections(exclude) {
         const c = [];
