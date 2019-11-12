@@ -1036,6 +1036,13 @@ class S2Audio {
         return name;
     }
 
+    /**
+     * Creates a new node using type parameter with 'new' operator
+     * @param {string} name Name of node
+     * @param {Class} type Class function
+     * @param {Object} options Options object
+     * @returns {string} Name used for node
+     */
     newNode(name = 'Node', type = Echo, options = {}) {
         name = this.firstNameAvailable(name);
         this.nodes[name] = new type(this.context, options);

@@ -7,6 +7,9 @@
     padding: 2em;
 }
 
+.oscillators {
+    overflow-x: scroll;
+}
 
 .oscillator-general,
 .oscillator-envelope,
