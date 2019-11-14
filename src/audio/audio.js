@@ -94,24 +94,37 @@ const getFinalDestination = (destination, context) => {
 class ParamConnectionSource {
     constructor() {
         this.source = null;
-        this.connections = [];
     }
 
     setSource(source) {
-        if (source instanceof AudioScheduledSourceNode) {
+        if (source) {
             this.source = source;
         }
     }
 
     connect(dest) {
         if (dest instanceof AudioParam) {
-            this.source.connect();
+            this.source.connect(dest);
         }
     }
 
     disconnectSourceFrom(dest) {
         this.source.disconnect(dest);
     }
+}
+
+class ParamConnectionDestination {
+    constructor() {
+        this.param = null;
+    }
+
+    setParam(param) {
+        if (param instanceof AudioParam) {
+            this.param = param;
+        }
+    }
+
+
 }
 
 const defaultEnvelope = {
