@@ -91,6 +91,57 @@ const getFinalDestination = (destination, context) => {
     return context.destination;
 };
 
+/**
+ * Base node with common functionality
+ */
+class S2NodeBase {
+    /**
+     * Create a new base node
+     * @param {string} name Name of node
+     * @param {AudioContext} context Reference to AudioContext instance
+     * @param {Object} options Options object
+     */
+    constructor(name, context, options = {}) {
+        this.setName(name);
+        if (context && context instanceof AudioContext) {
+            this.context = context;
+        } else {
+            console.warn('Invalid AudioContext!');
+            this.context = null;
+        }
+        this.options = {...options};
+    }
+
+    /**
+     * Sets the name of this node
+     * @param {string} newName New name
+     */
+    setName(newName) {
+        this.name = newName;
+    };
+
+    /**
+     * Sets a value in the options object if the option exists
+     * @param {string} key Option name
+     * @param {*} value Value to set
+     */
+    setOption(key, value) {
+        if (key in this.options) {
+            this.options[key] = value;
+        }
+    }
+
+    /**
+     * Gets value of option
+     * @param {string} key Option name
+     */
+    getOption(key) {
+        if (key in this.options) {
+            return this.options[key];
+        }
+    }
+}
+
 class ParamConnectionSource {
     constructor() {
         this.source = null;
@@ -116,6 +167,7 @@ class ParamConnectionSource {
 class ParamConnectionDestination {
     constructor() {
         this.param = null;
+
     }
 
     setParam(param) {
@@ -124,7 +176,7 @@ class ParamConnectionDestination {
         }
     }
 
-
+    addConnection(source)
 }
 
 const defaultEnvelope = {
