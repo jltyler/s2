@@ -1,4 +1,5 @@
-import {ParamConnectionReceiver, getFinalDestination} from './base.js';
+import {ParamConnectionReceiver} from './base.js';
+import {getFinalDestination} from './util.js';
 
 const defaultFilterOptions = {
     type: 'lowpass',

@@ -1,4 +1,6 @@
-import {S2NodeBase, ParamConnectionReceiver, getFinalDestination} from './base.js';
+import {S2NodeBase, ParamConnectionReceiver} from './base.js';
+import {getFinalDestination, ALPHA} from './util.js';
+import {newIdGenerator} from '../../Utility.js';
 
 const defaultGainEnvelope = {
     attack: 0.1,

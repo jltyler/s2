@@ -56,6 +56,11 @@ class S2NodeBase {
             return this.options[key];
         }
     }
+
+    getDestination() {
+        console.warn('S2NodeBase::getDestination() Unimplemented! This should be overloaded!');
+        return this.context;
+    }
 }
 
 /**
@@ -67,7 +72,7 @@ class ParamConnectionSource extends S2NodeBase {
     }
 
     connect(dest) {
-        console.warn('ParamConnectionSource::connect should be overloaded and it is not!');
+        console.warn('ParamConnectionSource::connect() Unimplemented! This should be overloaded!');
     }
 }
 
@@ -154,27 +159,13 @@ class ParamConnectionSnR extends ParamConnectionReceiver {
     }
 
     connect(dest) {
-        console.warn('ParamConnectionSnR::connect should be overloaded and it is not!');
+        console.warn('ParamConnectionSnR::connect() Unimplemented! This should be overloaded!');
     }
 }
 
-/**
- * Checks destination validity and returns a valid destination. Falls back to context destination
- * @param {AudioNode|Echo|Filter} destination Destination node
- * @param {AudioContext} context AudioContext reference
- */
-const getFinalDestination = (destination, context) => {
-    if (destination) {
-        if (destination instanceof AudioNode) return destination;
-        else if (destination instanceof Echo || destination instanceof Filter) return destination.getDestination();
-    }
-    return context.destination;
-};
-
-export default {
+export {
     S2NodeBase,
     ParamConnectionSource,
     ParamConnectionReceiver,
-    ParamConnectionSnR,
-    getFinalDestination
+    ParamConnectionSnR
 };

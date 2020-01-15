@@ -1,4 +1,3 @@
-import {S2NodeBase, ParamConnectionSource, ParamConnectionReceiver, ParamConnectionSnR} from './nodes/base.js';
 import Echo from './nodes/Echo.js';
 import Envelope from './nodes/envelope.js';
 import Filter from './nodes/filter.js';
@@ -7,8 +6,6 @@ import Voice from './nodes/voice.js';
 import Sequences from './sequences.js';
 import {bind as bindKeys, unbind as unbindKeys, release as releaseKeys} from './keys.js';
 import {NOTES, ALPHA} from './notes.js';
-import {newIdGenerator} from '../Utility.js';
-import { notStrictEqual } from 'assert';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 
