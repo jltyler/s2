@@ -11,6 +11,10 @@
     overflow-x: scroll;
 }
 
+.oscillators div {
+    background-color: darkslategrey;
+}
+
 .oscillator-general,
 .oscillator-envelope,
 .oscillator-tremolo {
