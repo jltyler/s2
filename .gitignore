@@ -171,3 +171,4 @@ img/yes.png
 dist/*
 
 package-lock.json
+.vscode/*
