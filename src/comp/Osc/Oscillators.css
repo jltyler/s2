@@ -11,8 +11,8 @@
     overflow-x: scroll;
 }
 
-.oscillators div {
-    background-color: darkslategrey;
+.oscillators > div {
+    background-color: darkslateblue;
 }
 
 .oscillator-general,

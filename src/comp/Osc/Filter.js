@@ -1,5 +1,6 @@
 import React from 'react';
 import {Knob} from '../Controls/Knobs';
+import './Filter.css';
 
 const setOption = (filter, option, freq) => {
     filter.setOption(option, freq);
