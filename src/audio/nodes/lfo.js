@@ -45,6 +45,7 @@ class LFO extends ParamConnectionSnR {
     newLFO() {
         const osc = this.context.createOscillator();
         osc.frequency.value = this.options.frequency;
+        osc.type = this.options.waveform;
         this.connectFrequency(osc);
 
         const gain = this.context.createGain();
@@ -62,6 +63,10 @@ class LFO extends ParamConnectionSnR {
 
     setAmplitude(amp) {
         this.options.amplitude = amp;
+    }
+
+    setWaveform(wav) {
+        this.options.waveform = wav;
     }
 
     connectFrequency(osc) {

@@ -5,14 +5,11 @@
     box-sizing: border-box;
     border: 1px solid rgba(0, 0, 0, 0.39);
     padding: 2em;
+    background-color: darkslateblue;
 }
 
 .oscillators {
     overflow-x: scroll;
-}
-
-.oscillators > div {
-    background-color: darkslateblue;
 }
 
 .oscillator-general,
@@ -33,9 +30,12 @@
     min-width: 50px;
     min-height: 50px;
     background-color: rgba(0, 255, 255, 0.336);
-    font-size: 40px;
+    font-size: 32px;
     line-height: 50px;
     text-align: center;
+    padding: 3px;
+    margin-right: 5px;
+    border: 1px solid violet;
 }
 
 .add-lfo {

@@ -107,16 +107,18 @@ class Oscillators extends Component {
     render() {
         return (
             <div className="oscillators">
+                <div className="add-buttons-container">
+                    <div className="add-oscillator" onClick={this.addOscillator}>Add Voice</div>
+                    <div className="add-lfo" onClick={this.addLFO}>Add LFO</div>
+                    <div className="add-envelope" onClick={this.addEnvelope}>Add Envelope</div>
+                    <div className="add-oscillator" onClick={this.addFilter}>Add Filter</div>
+                    <div className="add-echo" onClick={this.addEcho}>Add Echo</div>
+                </div>
                 {this.renderOscillators()}
                 {this.renderLFOs()}
                 {this.renderEnvelopes()}
                 {this.renderFilters()}
                 {this.renderEchoes()}
-                <div className="add-oscillator" onClick={this.addOscillator}>New Voice</div>
-                <div className="add-lfo" onClick={this.addLFO}>New LFO</div>
-                <div className="add-envelope" onClick={this.addEnvelope}>New Envelope</div>
-                <div className="add-oscillator" onClick={this.addFilter}>New Filter</div>
-                <div className="add-echo" onClick={this.addEcho}>New Echo</div>
             </div>
         );
     }

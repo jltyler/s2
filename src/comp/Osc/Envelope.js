@@ -3,32 +3,8 @@ import {Knob} from '../Controls/Knobs';
 import './Envelope.css';
 import ParamConnection from '../Controls/ParamConnection';
 
-const logHandler = function() {
-    console.log(arguments);
-};
-
 const setEnvelopeOption = (envelope, key, value) => {
     envelope.setOption(key, value);
-};
-
-const setConnection = (envelope, iface, update, e) => {
-    const existing = iface.getConnectionBySource(envelope.name);
-    const connection = e.target.value;
-    if (connection === existing) return;
-    else if (connection === 'none') {
-        iface.removeConnectionBySource(envelope.name);
-    }
-    else {
-        const split = connection.split('.');
-        iface.addConnection(split[0], split[1], envelope.name);
-    }
-    update();
-};
-
-const getConnection = (envelope, iface) => {
-    const r = iface.getConnectionBySource(envelope.name);
-    if (r) return r.name + '.' + r.param;
-    else return 'none';
 };
 
 const Envelope = (props) => {
@@ -45,12 +21,7 @@ const Envelope = (props) => {
         <div className="envelope-misc">
             <Knob label="Scale" handler={setEnvelopeOption.bind(null, envelope, 'scale')} min={-1000.0} max={1000.0} />
             <Knob label="Length" handler={setEnvelopeOption.bind(null, envelope, 'length')} min={0.0} max={10.0} />
-            Destination
             <ParamConnection s2={props.s2} name={props.name} />
-            {/* <select onChange={setConnection.bind(null, envelope, props.interface, props.update)} value={getConnection(envelope, props.interface)} >
-                <option key="none" value="none">No connection</option>
-                {props.interface.getAvailableConnections(props.name).map((c, i) => <option key={i} value={c}>{c}</option>)}
-            </select> */}
         </div>
 
     </div>

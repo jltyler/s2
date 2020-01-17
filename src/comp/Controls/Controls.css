@@ -114,3 +114,21 @@
 .param-connection-list > li {
     border: 1px solid purple;
 }
+
+.waveform-container {
+    border: 1px solid black;
+    padding: 2px;
+    color: green;
+    list-style: none;
+}
+
+.waveform-container li {
+    display: inline-block;
+    padding: 3px;
+    border:1px solid green;
+}
+
+.waveform-container li.selected {
+    color: greenyellow;
+    border-color: greenyellow;
+}
