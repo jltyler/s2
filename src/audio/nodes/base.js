@@ -8,7 +8,10 @@ class S2NodeBase {
      * @param {Object} options Options object
      */
     constructor(context, options = {}) {
-        this.setName('DefaultName');
+        this.setName(`S2NodeBase ${(()=>{
+            let numero = -1;
+            return ()=>++numero;
+        })()}`);
         if (context && context instanceof AudioContext) {
             this.context = context;
         } else {

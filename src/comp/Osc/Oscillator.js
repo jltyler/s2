@@ -69,10 +69,10 @@ const Oscillator = (props) => {
             <div className="oscillator-envelope">
                 <h2>Envelope (gain)</h2>
                 <Switch label="Active" handler={setVoiceOption.bind(null, voice, 'useEnvelope')} />
-                <Knob label="Attack" handler={setEnvelopeOption.bind(null, voice, 'attack')} min={0.001} max={5.0} value={0.1} defaultValue={0.1} />
-                <Knob label="Decay" handler={setEnvelopeOption.bind(null, voice, 'decay')} min={0.001} max={5.0} value={0.001} defaultValue={0.001} />
+                <Knob label="Attack" handler={setEnvelopeOption.bind(null, voice, 'attack')} min={1} max={10} curve={1} a={0.001} b={4.35} defaultValue={0.1} />
+                <Knob label="Decay" handler={setEnvelopeOption.bind(null, voice, 'decay')} min={1} max={10} curve={1} a={0.001} b={4.35} defaultValue={0.001} />
                 <Knob label="Sustain" handler={setEnvelopeOption.bind(null, voice, 'sustain')} min={0} max={1.0} value={1.0} defaultValue={1.0} />
-                <Knob label="Release" handler={setEnvelopeOption.bind(null, voice, 'release')} min={0.001} max={5.0} value={0.5} defaultValue={0.5} />
+                <Knob label="Release" handler={setEnvelopeOption.bind(null, voice, 'release')} min={1} max={10} curve={1} a={0.001} b={4.35} defaultValue={0.5} />
                 Display  <br />
             </div>
         </div>

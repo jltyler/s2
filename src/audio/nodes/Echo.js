@@ -9,7 +9,6 @@ const defaultEcho = {
 class Echo {
     /**
      * Creates new Echo node
-     * @param {name} name Name of node
      * @param {AudioContext} context AudioContext reference
      * @param {Object} options Options object
      * @param {number} options.decay Gain node value for dampening of signal. Default: 0.66

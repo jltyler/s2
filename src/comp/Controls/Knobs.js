@@ -1,6 +1,8 @@
 import React, {Component} from 'react';
 import {lerp, alpha} from '../../Utility';
 
+// TODO: OVERHAUL EDITING INTERFACE
+
 /**
  * Rotating Knob React Component. Rotates clockwise between two angles, lerps a value from the angles and min/max values into a handler
  * @param min Minimum value to send to handler. Default: 0
@@ -15,6 +17,9 @@ class Knob extends Component {
         super(props);
         this.min = (typeof props.min === 'number' ? props.min : 0);
         this.max = (typeof props.max === 'number' ? props.max : 100);
+        this.curve = (typeof props.curve === 'number' ? props.curve : 0); // 0: linear, 1: ax^b, 2: a^x
+        this.a = (typeof props.a === 'number' ? props.a : 1);
+        this.b = (typeof props.b === 'number' ? props.b : 2);
 
         this.minAngle = (typeof props.minAngle === 'number' ? props.minAngle : Math.PI * .75);
         while (this.minAngle < 0)
@@ -81,9 +86,15 @@ class Knob extends Component {
         const rawAngle = Math.atan2(mouseY - knobY, mouseX - knobX);
         let angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
         let value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
-        if (this.snap) {
-            value = this.getSnappedValue(value);
-            angle = this.getAngleFromValue(value);
+        if (this.curve === 0) {
+            if (this.snap) {
+                value = this.getSnappedValue(value);
+                angle = this.getAngleFromValue(value);
+            }
+        } else if (this.curve === 1) {
+            value = this.a * (Math.pow(value, this.b));
+        } else if (this.curve >= 2) {
+            value = Math.pow(this.a, value);
         }
         return {angle, value};
     }

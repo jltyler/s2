@@ -79,11 +79,7 @@ const defaultVoiceOptions = {
  * Stops an oscillator or an array of oscillators at the specified time
  */
 const stopOscs = (osc, stopTime = 0) => {
-    if (Array.isArray(osc)) {
         osc.forEach((o) => o.stop(stopTime));
-    } else {
-        osc.stop(stopTime);
-    }
 };
 
 /**
@@ -168,12 +164,11 @@ class Voice extends ParamConnectionReceiver {
         panner.pan.value = opt.pan;
         const compressor = this.context.createDynamicsCompressor();
 
-        let oscs = null;
+        const oscs = [];
 
         const actualFrequency = frequency * Math.pow(2, opt.octave) * Math.pow(ALPHA, opt.detune);
 
         if (opt.unison > 1) {
-            oscs = [];
             const minVal = opt.unisonSpread / 2 * -1;
             const inc = opt.unisonSpread / (opt.unison - 1);
             for (let i = 0; i < opt.unison; ++i) {
@@ -181,7 +176,7 @@ class Voice extends ParamConnectionReceiver {
                 oscs.push(o);
             }
         } else {
-            oscs = this.newOscillator(actualFrequency, panner, startTime);
+            oscs.push(this.newOscillator(actualFrequency, panner, startTime));
         }
 
         const finalGain = this.context.createGain();
