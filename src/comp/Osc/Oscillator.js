@@ -44,8 +44,8 @@ const Oscillator = (props) => {
                     <Knob label="Pan" handler={setVoiceOption.bind(null, voice, 'pan')} min={-1.0} max={1.0} defaultValue={0} />
                 </div>
                 <div className="oscillator-general-main">
-                    <Knob label="Octave" handler={setVoiceOption.bind(null, voice, 'octave')} min={-2} max={2} snap={1} defaultValue={0} precision={0} />
-                    <Knob label="Tune" handler={setVoiceOption.bind(null, voice, 'detune')} min={-1} max={1} defaultValue={0} />
+                    <Knob label="Octave" handler={setVoiceOption.bind(null, voice, 'octave')} min={-2} max={2} snap={1} defaultValue={0} precision={0} continuous={true}/>
+                    <Knob label="Tune" handler={setVoiceOption.bind(null, voice, 'detune')} min={-1} max={1} defaultValue={0} continuous={true}/>
                     <Waveform handler={setWaveform.bind(null, voice)}/>
                     {/* Waveform <br />
                     <select onChange={setWaveform.bind(null, voice)}>
@@ -55,7 +55,7 @@ const Oscillator = (props) => {
                         <option value="triangle">Triangle</option>
                     </select> */}
                     <Knob label="Unison" handler={setVoiceOption.bind(null, voice, 'unison')} min={1} max={12} snap={1} value={1} defaultValue={1} precision={0} />
-                    <Knob label="Unison Spread" handler={setVoiceOption.bind(null, voice, 'unisonSpread')} min={0.001} max={5} defaultValue={1} />
+                    <Knob label="Unison Spread" handler={setVoiceOption.bind(null, voice, 'unisonSpread')} min={0.001} max={5} defaultValue={1} continuous={true}/>
                 </div>
                 <div>
                     Output destination

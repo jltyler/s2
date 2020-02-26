@@ -3,6 +3,12 @@ import {lerp, alpha} from '../../Utility';
 
 // TODO: OVERHAUL EDITING INTERFACE
 
+const Curves = {
+    LINEAR: 0,
+    EXPONENTIAL: 1,
+    POWER: 2,
+};
+
 /**
  * Rotating Knob React Component. Rotates clockwise between two angles, lerps a value from the angles and min/max values into a handler
  * @param min Minimum value to send to handler. Default: 0
@@ -17,9 +23,10 @@ class Knob extends Component {
         super(props);
         this.min = (typeof props.min === 'number' ? props.min : 0);
         this.max = (typeof props.max === 'number' ? props.max : 100);
-        this.curve = (typeof props.curve === 'number' ? props.curve : 0); // 0: linear, 1: ax^b, 2: a^x
+        this.curve = (typeof props.curve === 'number' ? props.curve : Curves.LINEAR); // 0: linear, 1: ax^b, 2: ab^x
         this.a = (typeof props.a === 'number' ? props.a : 1);
         this.b = (typeof props.b === 'number' ? props.b : 2);
+        this.continuous = (typeof props.continuous === 'boolean' ? props.continuous : false);
 
         this.minAngle = (typeof props.minAngle === 'number' ? props.minAngle : Math.PI * .75);
         while (this.minAngle < 0)
@@ -86,15 +93,15 @@ class Knob extends Component {
         const rawAngle = Math.atan2(mouseY - knobY, mouseX - knobX);
         let angle = Math.min(this.maxAngle, Math.max(this.minAngle, this.getFixedAngle(rawAngle)));
         let value = lerp(this.min, this.max, (angle - this.minAngle) / (this.maxAngle - this.minAngle));
-        if (this.curve === 0) {
+        if (this.curve === Curves.LINEAR) {
             if (this.snap) {
                 value = this.getSnappedValue(value);
                 angle = this.getAngleFromValue(value);
             }
-        } else if (this.curve === 1) {
+        } else if (this.curve === Curves.EXPONENTIAL) {
             value = this.a * (Math.pow(value, this.b));
-        } else if (this.curve >= 2) {
-            value = Math.pow(this.a, value);
+        } else if (this.curve === Curves.POWER) {
+            value = this.a * Math.pow(this.b, value);
         }
         return {angle, value};
     }
@@ -124,7 +131,10 @@ class Knob extends Component {
             const knobCenterY = bounds.y + bounds.height / 2;
 
             const onMouseMove = ((e) => {
-                this.setState(this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY));
+                const o = this.getAngleValue(knobCenterX, knobCenterY, e.clientX, e.clientY);
+                if (this.continuous && typeof this.props.handler === 'function')
+                    this.props.handler(o.value);
+                this.setState(o);
             });
             document.addEventListener('mousemove', onMouseMove);
 

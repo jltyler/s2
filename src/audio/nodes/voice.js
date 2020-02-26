@@ -109,6 +109,7 @@ class Voice extends ParamConnectionReceiver {
         // TODO CHANGE GAIN ENV TO USE GENERIC ENVELOPE GENERATOR
         this.gainEnv = new GainEnvelope(this.context, {});
 
+        /** Object with note IDs as keys and arrays as values. Array contains: oscillator nodes array, gain node, gain envelope boolean */
         this.playing = {};
         this.getOscId = newIdGenerator();
 
@@ -179,6 +180,9 @@ class Voice extends ParamConnectionReceiver {
             oscs.push(this.newOscillator(actualFrequency, panner, startTime));
         }
 
+        // HORRIBLE HACKY SHIT
+        oscs.forEach((o) => o.baseFrequency = frequency);
+
         const finalGain = this.context.createGain();
         finalGain.gain.value = opt.gain;
 
@@ -197,7 +201,7 @@ class Voice extends ParamConnectionReceiver {
         this.playing[id] = [oscs, gain, opt.useEnvelope];
 
         if (stopTime) {
-            const releaseTime = opt.useEnvelope ? gain.release(stopTime) + 0.01 : stopTime;
+            const releaseTime = opt.useEnvelope ? gain.release(stopTime) + 0.001 : stopTime;
             stopOscs(oscs, releaseTime);
             setTimeout(() => delete this.playing[id], (releaseTime + 1) * 1000);
         }
@@ -272,8 +276,57 @@ class Voice extends ParamConnectionReceiver {
     setOption(key, value) {
         if (key in this.options) {
             this.options[key] = value;
+            this.changePlayingOscillators(key, value);
             return true;
         } else return false;
+    }
+
+    getPlayingOscillators() {
+        const oscs = {};
+        for (const k in this.playing) {
+            oscs[k] = this.playing[k][0];
+        }
+        return oscs;
+    }
+/**
+ * if (opt.unison > 1) {
+            const minVal = opt.unisonSpread / 2 * -1;
+            const inc = opt.unisonSpread / (opt.unison - 1);
+            for (let i = 0; i < opt.unison; ++i) {
+                const o = this.newOscillator(actualFrequency * Math.pow(ALPHA, minVal + inc * i), panner, startTime);
+                oscs.push(o);
+            }
+ *
+ *
+ */
+
+    changePlayingOscillators(parameter, value) {
+        const oscs = this.getPlayingOscillators();
+        const opt = this.options;
+        switch (parameter) {
+            case 'waveform':
+                for (const n in oscs) {
+                    oscs[n].forEach((o) => o.type = value);
+                }
+                break;
+            case 'frequency':
+            case 'octave':
+            case 'detune':
+            case 'unisonSpread':
+                const unisonMin = opt.unisonSpread / 2 * -1;
+                const inc = opt.unisonSpread / (opt.unison - 1);
+                for (const n in oscs) {
+                    const freq = oscs[n][0].baseFrequency * Math.pow(2, opt.octave) * Math.pow(ALPHA, opt.detune);
+                    if (oscs[n].length > 1) {
+                        oscs[n].forEach((o, i) => o.frequency.value = freq * Math.pow(ALPHA, unisonMin + inc * i));
+                    } else {
+                        oscs[n][0].frequency.value = freq;
+                    }
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     getEnvelope() {

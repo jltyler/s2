@@ -1,4 +1,4 @@
-import Echo from './nodes/Echo.js';
+import Echo from './nodes/echo.js';
 import Envelope from './nodes/envelope.js';
 import Filter from './nodes/filter.js';
 import LFO from './nodes/lfo.js';
