@@ -7,6 +7,7 @@ class VerticalSlider extends Component {
         super(props);
         this.min = (typeof props.min === 'number' ? props.min : 0);
         this.max = (typeof props.max === 'number' ? props.max : 100);
+        this.continuous = (typeof props.continuous === 'boolean' ? props.continuous : false);
         this.state = {
             value: props.value || 50,
             position: 0,
@@ -27,6 +28,8 @@ class VerticalSlider extends Component {
                 value = Math.floor(value / this.props.snap + 0.5) * this.props.snap;
                 position = alpha(this.min, this.max, value) * verticalRange;
             }
+
+            if (this.continuous && typeof this.props.handler === 'function') this.props.handler(value);
 
             this.setState({position});
         };

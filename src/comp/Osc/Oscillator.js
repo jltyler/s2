@@ -28,8 +28,6 @@ const getAudioConnection = (iface, voice) => {
 };
 
 const setWaveform = (voice, e) => {
-    console.log('voice:', voice);
-    console.log('e:', e);
     voice.setOption('waveform', e);
 };
 
@@ -40,20 +38,13 @@ const Oscillator = (props) => {
             <h3 onDoubleClick={logHandler}>{props.name}</h3>
             <div className="oscillator-general">
                 <div className="oscillator-general-global">
-                    <VerticalSlider snap={0.05} label="Gain" handler={setVoiceOption.bind(null, voice, 'gain')} min={1.0} max={0.0} /> <br />
-                    <Knob label="Pan" handler={setVoiceOption.bind(null, voice, 'pan')} min={-1.0} max={1.0} defaultValue={0} />
+                    <VerticalSlider snap={0.01} label="Gain" handler={setVoiceOption.bind(null, voice, 'gain')} min={1.0} max={0.0} continuous={true} /> <br />
+                    <Knob label="Pan" handler={setVoiceOption.bind(null, voice, 'pan')} min={-1.0} max={1.0} defaultValue={0} continuous={true}/>
                 </div>
                 <div className="oscillator-general-main">
                     <Knob label="Octave" handler={setVoiceOption.bind(null, voice, 'octave')} min={-2} max={2} snap={1} defaultValue={0} precision={0} continuous={true}/>
                     <Knob label="Tune" handler={setVoiceOption.bind(null, voice, 'detune')} min={-1} max={1} defaultValue={0} continuous={true}/>
                     <Waveform handler={setWaveform.bind(null, voice)}/>
-                    {/* Waveform <br />
-                    <select onChange={setWaveform.bind(null, voice)}>
-                        <option value="sine">Sine</option>
-                        <option value="square">Square</option>
-                        <option value="sawtooth">Sawtooth</option>
-                        <option value="triangle">Triangle</option>
-                    </select> */}
                     <Knob label="Unison" handler={setVoiceOption.bind(null, voice, 'unison')} min={1} max={12} snap={1} value={1} defaultValue={1} precision={0} />
                     <Knob label="Unison Spread" handler={setVoiceOption.bind(null, voice, 'unisonSpread')} min={0.001} max={5} defaultValue={1} continuous={true}/>
                 </div>

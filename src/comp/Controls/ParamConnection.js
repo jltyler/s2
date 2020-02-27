@@ -22,6 +22,7 @@ const setConnection = (s2, source, dest, param, value) => {
 const ParamConnection = (props) => {
     const validDestinations = props.s2.getParamConnectionDestinations(props.name);
     return (<div>
+        <h4>Parameter Connections</h4>
         <ul className="param-connection-list">
             {validDestinations.map((d, i) => {
                 return (<li key={i}>

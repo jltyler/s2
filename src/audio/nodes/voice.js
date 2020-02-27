@@ -109,7 +109,7 @@ class Voice extends ParamConnectionReceiver {
         // TODO CHANGE GAIN ENV TO USE GENERIC ENVELOPE GENERATOR
         this.gainEnv = new GainEnvelope(this.context, {});
 
-        /** Object with note IDs as keys and arrays as values. Array contains: oscillator nodes array, gain node, gain envelope boolean */
+        /** Object with note IDs as keys and arrays as values. Array contains: oscillator nodes array, gain node, gain envelope boolean, panner node */
         this.playing = {};
         this.getOscId = newIdGenerator();
 
@@ -187,25 +187,18 @@ class Voice extends ParamConnectionReceiver {
         finalGain.gain.value = opt.gain;
 
         const finalDestination = getFinalDestination(opt.destination, this.context);
-        // this.context.destination;
-        // if (opt.destination) {
-        //     if (opt.destination instanceof Echo || opt.destination instanceof Filter) {
-        //         finalDestination = opt.destination.getDestination();
-        //     } else finalDestination = opt.destination;
-        // }
 
         panner.connect(gain).connect(compressor).connect(finalGain).connect(finalDestination);
         this.connectParams(panner, gain);
 
         const id = this.getOscId();
-        this.playing[id] = [oscs, gain, opt.useEnvelope];
+        this.playing[id] = [oscs, gain, opt.useEnvelope, panner];
 
         if (stopTime) {
             const releaseTime = opt.useEnvelope ? gain.release(stopTime) + 0.001 : stopTime;
             stopOscs(oscs, releaseTime);
             setTimeout(() => delete this.playing[id], (releaseTime + 1) * 1000);
         }
-        // else console.log('Undefined note length.');
 
         return id;
     }
@@ -243,7 +236,8 @@ class Voice extends ParamConnectionReceiver {
 
         const releaseTime = env ? gain.release(this.context.currentTime) : this.context.currentTime;
         stopOscs(osc, releaseTime);
-        delete this.playing[id];
+        if (env) setTimeout(() => delete this.playing[id], (releaseTime - this.context.currentTime) * 1000);
+        else delete this.playing[id];
     }
 
     /**
@@ -288,25 +282,21 @@ class Voice extends ParamConnectionReceiver {
         }
         return oscs;
     }
-/**
- * if (opt.unison > 1) {
-            const minVal = opt.unisonSpread / 2 * -1;
-            const inc = opt.unisonSpread / (opt.unison - 1);
-            for (let i = 0; i < opt.unison; ++i) {
-                const o = this.newOscillator(actualFrequency * Math.pow(ALPHA, minVal + inc * i), panner, startTime);
-                oscs.push(o);
-            }
- *
- *
- */
+
+    getGainNodes() {
+        const gains = {};
+        for (const k in this.playing) {
+            gains[k] = this.playing[k][1];
+        }
+        return gains;
+    }
 
     changePlayingOscillators(parameter, value) {
-        const oscs = this.getPlayingOscillators();
         const opt = this.options;
         switch (parameter) {
             case 'waveform':
-                for (const n in oscs) {
-                    oscs[n].forEach((o) => o.type = value);
+                for (const n in this.playing) {
+                    this.playing[n][0].forEach((o) => o.type = value);
                 }
                 break;
             case 'frequency':
@@ -315,13 +305,23 @@ class Voice extends ParamConnectionReceiver {
             case 'unisonSpread':
                 const unisonMin = opt.unisonSpread / 2 * -1;
                 const inc = opt.unisonSpread / (opt.unison - 1);
-                for (const n in oscs) {
-                    const freq = oscs[n][0].baseFrequency * Math.pow(2, opt.octave) * Math.pow(ALPHA, opt.detune);
-                    if (oscs[n].length > 1) {
-                        oscs[n].forEach((o, i) => o.frequency.value = freq * Math.pow(ALPHA, unisonMin + inc * i));
+                for (const n in this.playing) {
+                    const freq = this.playing[n][0][0].baseFrequency * Math.pow(2, opt.octave) * Math.pow(ALPHA, opt.detune);
+                    if (this.playing[n][0].length > 1) {
+                        this.playing[n][0].forEach((o, i) => o.frequency.value = freq * Math.pow(ALPHA, unisonMin + inc * i));
                     } else {
-                        oscs[n][0].frequency.value = freq;
+                        this.playing[n][0][0].frequency.value = freq;
                     }
+                }
+                break;
+            case 'gain':
+                for (const n in this.playing) {
+                    this.playing[n][1].gain.value = value;
+                }
+                break;
+            case 'pan':
+                for (const n in this.playing) {
+                    this.playing[n][3].pan.value = value;
                 }
                 break;
             default:
