@@ -1,4 +1,5 @@
 import {ParamConnectionSnR} from './base.js';
+import {newIdGenerator} from '../../Utility,js';
 
 const defaultLFO = {
     waveform: 'sine',
@@ -23,13 +24,16 @@ class LFO extends ParamConnectionSnR {
      */
     constructor(context, options = {}) {
         super(context, {...defaultLFO, ...options});
+
         this.connections = {
             'frequency': null,
             'amplitude': null,
         };
+        this.playing = {};
+        this.nextId = newIdGenerator();
 
         this.connect = this.connect.bind(this);
-        this.newLFO = this.newLFO.bind(this);
+        this.newLFO = this.newNode.bind(this);
         this.setFrequency = this.setFrequency.bind(this);
         this.setAmplitude = this.setAmplitude.bind(this);
         this.connectFrequency = this.connectFrequency.bind(this);
@@ -39,10 +43,10 @@ class LFO extends ParamConnectionSnR {
     }
 
     connect(destination) {
-        this.newLFO().connect(destination);
+        this.newNode().connect(destination);
     }
 
-    newLFO() {
+    newNode() {
         const osc = this.context.createOscillator();
         osc.frequency.value = this.options.frequency;
         osc.type = this.options.waveform;
@@ -54,7 +58,21 @@ class LFO extends ParamConnectionSnR {
 
         osc.start();
         osc.connect(gain);
-        return gain;
+
+        const id = this.nextId();
+        this.playing[id] = [osc, gain];
+        return id;
+    }
+
+    getPlaying(id) {
+        if (this.playing[id]) return this.playing[id][1];
+    }
+
+    getPlayingParam(id, param) {
+        if (this.playing[id]) {
+            if (param === 'frequency') return this.playing[id][0].detune;
+            else if (param === 'amplitude') return this.playing[id][1].gain;
+        }
     }
 
     setFrequency(freq) {

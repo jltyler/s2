@@ -1,4 +1,5 @@
 import {ParamConnectionSource} from './base.js';
+import { newIdGenerator } from '../../Utility.js';
 
 const defaultEnvelope = {
     attack: 0.1,
@@ -30,6 +31,9 @@ class Envelope extends ParamConnectionSource {
      */
     constructor(context, options = {}) {
         super(context, {...defaultEnvelope, ...options});
+
+        this.playing = {};
+        this.nextId = newIdGenerator();
     }
 
     connect(destination) {
@@ -48,6 +52,30 @@ class Envelope extends ParamConnectionSource {
         cs.connect(destination);
         cs.start();
         return cs;
+    }
+
+    newNode() {
+        const startTime = this.context.currentTime;
+        const cs = this.context.createConstantSource();
+        const o = this.options;
+        cs.offset.setValueAtTime(o.base, startTime);
+        cs.offset.linearRampToValueAtTime(o.base + o.scale, startTime + o.attack);
+        cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay);
+        if (o.useRelease) {
+            this.attachRelease(cs);
+        } else {
+            cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay + o.length);
+            cs.offset.linearRampToValueAtTime(o.base, startTime + o.attack + o.decay + o.length + o.release);
+        }
+        cs.start();
+
+        const id = this.nextId();
+        this.playing[id] = cs;
+        return id;
+    }
+
+    getPlaying(id) {
+        if (this.playing[id]) return this.playing[id];
     }
 
     /**

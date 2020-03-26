@@ -1,5 +1,6 @@
 import {ParamConnectionReceiver} from './base.js';
 import {getFinalDestination} from './util.js';
+import { newIdGenerator } from '../../Utility.js';
 
 const defaultFilterOptions = {
     type: 'lowpass',
@@ -31,6 +32,9 @@ class Filter extends ParamConnectionReceiver {
             'frequency': null,
             'Q': null,
         };
+
+        this.nextId = newIdGenerator();
+        this.playing = {};
     }
 
     connectFrom(source) {
@@ -49,6 +53,32 @@ class Filter extends ParamConnectionReceiver {
         filter.connect(getFinalDestination(this.options.destination, this.context));
         this.connectParams(filter);
         return filter;
+    }
+
+    newNode() {
+        const filter = this.context.createBiquadFilter();
+        filter.frequency.value = this.options.frequency;
+        filter.Q.value = this.options.Q;
+        filter.type = this.options.type;
+
+        const id = this.nextId();
+        this.playing[id] = filter;
+        return id;
+    }
+
+    getPlaying(id) {
+        if (this.playing[id]) return this.playing[id];
+    }
+
+    getPlayingParam(id, param) {
+        if (this.playing[id]) {
+            switch (param) {
+                case "frequency":
+                    return this.playing[id].frequency;
+                case "Q":
+                    return this.playing[id].Q;
+            }
+        }
     }
 
     connectParams(filter) {

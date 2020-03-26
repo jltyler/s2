@@ -64,6 +64,14 @@ class S2NodeBase {
         console.warn('S2NodeBase::getDestination() Unimplemented! This should be overloaded!');
         return this.context;
     }
+
+    getPlaying(id) {
+        console.warn('S2NodeBase::getPlaying() Unimplemented! This should be overloaded!');
+    }
+
+    getPlayingParam(id, param) {
+        console.warn('S2NodeBase::getPlayingParam() Unimplemented! This should be overloaded!');
+    }
 }
 
 /**
@@ -76,6 +84,10 @@ class ParamConnectionSource extends S2NodeBase {
 
     connect(dest) {
         console.warn('ParamConnectionSource::connect() Unimplemented! This should be overloaded!');
+    }
+
+    newNode(dest) {
+        console.warn('ParamConnectionSource::newNode() Unimplemented! This should be overloaded!');
     }
 }
 
@@ -163,6 +175,10 @@ class ParamConnectionSnR extends ParamConnectionReceiver {
 
     connect(dest) {
         console.warn('ParamConnectionSnR::connect() Unimplemented! This should be overloaded!');
+    }
+
+    newNode(dest) {
+        console.warn('ParamConnectionSource::newNode() Unimplemented! This should be overloaded!');
     }
 }
 

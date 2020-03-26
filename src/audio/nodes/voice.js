@@ -144,7 +144,7 @@ class Voice extends ParamConnectionReceiver {
         const o = this.context.createOscillator();
         o.type = this.options.waveform;
         o.frequency.value = frequency;
-        this.connectOscParams(o);
+        // this.connectOscParams(o);/
         o.connect(destination);
         o.start(startTime);
         return o;
@@ -188,11 +188,11 @@ class Voice extends ParamConnectionReceiver {
 
         const finalDestination = getFinalDestination(opt.destination, this.context);
 
-        panner.connect(gain).connect(compressor).connect(finalGain).connect(finalDestination);
-        this.connectParams(panner, gain);
+        panner.connect(gain).connect(compressor).connect(finalGain); // .connect(finalDestination);
+        // this.connectParams(panner, gain);
 
         const id = this.getOscId();
-        this.playing[id] = [oscs, gain, opt.useEnvelope, panner];
+        this.playing[id] = [oscs, gain, opt.useEnvelope, panner, finalGain];
 
         if (stopTime) {
             const releaseTime = opt.useEnvelope ? gain.release(stopTime) + 0.001 : stopTime;
@@ -201,6 +201,25 @@ class Voice extends ParamConnectionReceiver {
         }
 
         return id;
+    }
+
+    getPlayingParam(id, param) {
+        // HACK THE PLANET!!! HACK THE PLANET!!!
+        if (this.playing[id]) {
+            switch (param) {
+                case "detune":
+                    return this.playing[id][0].map((o) => o.detune);
+                case "pan":
+                    return this.playing[id][3].pan;
+            }
+        } else console.warn(`Voice::getPlayingParam: Invalid ID "${id}"`);
+
+    }
+
+    getPlayingFinal(id) {
+        if (this.playing[id]) {
+            return this.playing[id][4]
+        }
     }
 
     /**
@@ -244,9 +263,9 @@ class Voice extends ParamConnectionReceiver {
      * Immediately stop note
      * @param {number} id Id of note that was returned by play()
      */
-    stop(id) {
+    stop(id, stopTime = 0) {
         const osc = this.playing[id][0];
-        stopOscs(osc);
+        stopOscs(osc, stopTime);
         delete this.playing[id];
     }
 
