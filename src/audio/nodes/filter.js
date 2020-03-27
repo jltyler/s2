@@ -37,24 +37,13 @@ class Filter extends ParamConnectionReceiver {
         this.playing = {};
     }
 
-    connectFrom(source) {
-        source.connect(this.newFilter());
-    }
-
     getDestination() {
         return this.newFilter();
     }
 
-    newFilter() {
-        const filter = this.context.createBiquadFilter();
-        filter.frequency.value = this.options.frequency;
-        filter.Q.value = this.options.Q;
-        filter.type = this.options.type;
-        filter.connect(getFinalDestination(this.options.destination, this.context));
-        this.connectParams(filter);
-        return filter;
-    }
-
+    /** Manufactures new node, activates them, returns id of node
+     * @returns {number}
+    */
     newNode() {
         const filter = this.context.createBiquadFilter();
         filter.frequency.value = this.options.frequency;
@@ -66,10 +55,21 @@ class Filter extends ParamConnectionReceiver {
         return id;
     }
 
+    /**
+     * Returns currently playing BiquadFilterNode for outgoing connections
+     * @param {number} id ID of node
+     * @returns {BiquadFilterNode}
+     */
     getPlaying(id) {
         if (this.playing[id]) return this.playing[id];
     }
 
+    /**
+     * Returns currently playing AudioParam for incoming connections
+     * @param {number} id ID of node
+     * @param {string} param name of parameter
+     * @returns {AudioParam}
+     */
     getPlayingParam(id, param) {
         if (this.playing[id]) {
             switch (param) {
@@ -81,6 +81,11 @@ class Filter extends ParamConnectionReceiver {
         }
     }
 
+    /**
+     * Stops currently playing filter at time and sets timer to disconnect node and trash references
+     * @param {number} id ID of node
+     * @param {number} stopTime When to stop
+     */
     stop(id, stopTime = 0) {
         if (stopTime === 0) stopTime = this.context.currentTime;
         if (this.playing[id]) {
@@ -88,19 +93,6 @@ class Filter extends ParamConnectionReceiver {
                 this.playing[id].disconnect();
                 delete this.playing[id];
             }, (stopTime - this.context.currentTime) * 1000 );
-        }
-    }
-
-    connectParams(filter) {
-        if (this.connections.frequency) {
-            this.connections.frequency.forEach((f) => {
-                f.connect(filter.detune);
-            });
-        }
-        if (this.connections.Q) {
-            this.connections.Q.forEach((q) => {
-                q.connect(filter.Q);
-            });
         }
     }
 
@@ -113,6 +105,22 @@ class Filter extends ParamConnectionReceiver {
     setOption(key, value) {
         if (key in this.options) {
             this.options[key] = value;
+            switch (key) {
+                case 'frequency':
+                case 'Q':
+                case 'gain':
+                    for(const id in this.playing) {
+                        this.playing[id][key].value = value;
+                    }
+                    break;
+                case 'type':
+                    for(const id in this.playing) {
+                        this.playing[id].type = value;
+                    }
+                    break;
+                default:
+                    break;
+            }
             return true;
         } else return false;
     }

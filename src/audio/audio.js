@@ -439,6 +439,7 @@ class S2Audio {
         }
     }
 
+    /** Returns connection debug array */
     getConnectionsDebug() {
         const allNodes = this.getAllNodes();
         const ret = [];
@@ -466,6 +467,10 @@ class S2Audio {
         ];
     }
 
+    /**
+     * Get available audio destinations
+     * @param {string} exclude Name to exclude
+     */
     getAvailableAudioConnections(exclude) {
         const c = [];
         const combo = [...Object.keys(this.filters), ...Object.keys(this.nodes)];
@@ -476,6 +481,11 @@ class S2Audio {
         return c;
     }
 
+    /**
+     * Set audio connection
+     * @param {string} source Source name
+     * @param {string} destination Destination name
+     */
     addAudioConnection(source, destination) {
         const s = this.getFromName(source);
         const d = this.getFromName(destination);
@@ -485,6 +495,7 @@ class S2Audio {
         }
     }
 
+    /** Get all audio connections */
     getAudioConnections() {
         return this.audioConnections;
     }
@@ -518,6 +529,10 @@ class S2Audio {
         return sources;
     }
 
+    /**
+     * Remove audio connection
+     * @param {string} name Source name
+     */
     removeAudioConnection(name) {
         if (name in this.audioConnections) {
             this.getFromName(name).setOption('destination', null);
@@ -525,6 +540,12 @@ class S2Audio {
         }
     }
 
+    /**
+     * Recursive function that connects entire connection chain and gathers list of each node instance ID
+     * @private
+     * @param {string} name Name of node
+     * @param {number} destId ID of playing node instance
+     */
     connectionHorror(name, destId) {
         let connections = [];
         const dest = this.getFromName(name);
@@ -549,6 +570,10 @@ class S2Audio {
 
     audioConnectionHorror() {}
 
+    /**
+     * Play a note. Creates node instancesx, connects them, and activates them
+     * @param {string} note Note to play
+     */
     play(note) {
         const playing = {
             voices: [],
@@ -576,6 +601,10 @@ class S2Audio {
         this.playing[note] = playing;
     }
 
+    /**
+     * Starts releases and trashes node references
+     * @param {string} note Note to stop
+     */
     stop(note) {
         if (note === undefined) return stopAll();
         const o = this.playing[note];

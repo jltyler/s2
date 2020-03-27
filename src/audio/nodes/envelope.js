@@ -36,24 +36,9 @@ class Envelope extends ParamConnectionSource {
         this.nextId = newIdGenerator();
     }
 
-    connect(destination) {
-        const startTime = this.context.currentTime;
-        const cs = this.context.createConstantSource();
-        const o = this.options;
-        cs.offset.setValueAtTime(o.base, startTime);
-        cs.offset.linearRampToValueAtTime(o.base + o.scale, startTime + o.attack);
-        cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay);
-        if (o.useRelease) {
-            this.attachRelease(cs);
-        } else {
-            cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay + o.length);
-            cs.offset.linearRampToValueAtTime(o.base, startTime + o.attack + o.decay + o.length + o.release);
-        }
-        cs.connect(destination);
-        cs.start();
-        return cs;
-    }
-
+    /** Manufactures new node, activates them, returns id of node
+     * @returns {number}
+    */
     newNode() {
         const startTime = this.context.currentTime;
         const cs = this.context.createConstantSource();
@@ -74,10 +59,21 @@ class Envelope extends ParamConnectionSource {
         return id;
     }
 
+    /**
+     * Returns currently playing ConstantSourceNode for outgoing connections
+     * @param {number} id ID of node
+     * @returns {ConstantSourceNode}
+     */
     getPlaying(id) {
         if (this.playing[id]) return this.playing[id];
     }
 
+    /**
+     * Starts release of currently playing source node
+     * @param {number} id ID of node
+     * @param {number} releaseTime When to release
+     * @returns {number} Time that source value will reach minimum
+     */
     release(id, releaseTime = 0) {
         if (releaseTime === 0) releaseTime = this.context.currentTime;
         if (this.playing[id]) {
@@ -89,6 +85,11 @@ class Envelope extends ParamConnectionSource {
         }
     }
 
+    /**
+     * Stops currently playing source node at time and sets timer to disconnect node and trash references
+     * @param {number} id ID of node
+     * @param {number} stopTime When to stop
+     */
     stop(id, stopTime = 0) {
         if (stopTime === 0) stopTime = this.context.currentTime;
         if (this.playing[id]) {
@@ -99,20 +100,6 @@ class Envelope extends ParamConnectionSource {
                 delete this.playing[id];
             }, (stopTime - this.context.currentTime) * 1000);
         }
-    }
-
-    /**
-     * Attaches a release function that recieves a time to schedule the release envelope settings.
-     * @param {GainNode} cs Node to attach the function to
-     */
-    attachRelease(cs) {
-        cs.release = ((stopTime) => {
-            cs.offset.cancelScheduledValues(stopTime);
-            cs.offset.setValueAtTime(cs.offset.value, stopTime);
-            stopTime += this.options.release;
-            cs.offset.linearRampToValueAtTime(this.options.base, stopTime);
-            return stopTime;
-        }).bind(this);
     }
 }
 

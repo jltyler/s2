@@ -32,29 +32,21 @@ class LFO extends ParamConnectionSnR {
         this.playing = {};
         this.nextId = newIdGenerator();
 
-        this.connect = this.connect.bind(this);
-        this.newLFO = this.newNode.bind(this);
+        this.newNode = this.newNode.bind(this);
         this.setFrequency = this.setFrequency.bind(this);
         this.setAmplitude = this.setAmplitude.bind(this);
-        this.connectFrequency = this.connectFrequency.bind(this);
-        this.connectAmplitude = this.connectAmplitude.bind(this);
-        this.addConnection = this.addConnection.bind(this);
-        this.getConnection = this.getConnection.bind(this);
     }
 
-    connect(destination) {
-        // this.newNode().connect(destination);
-    }
-
+    /** Manufactures new nodes, activates them, returns id of node pair
+     * @returns {number}
+    */
     newNode() {
         const osc = this.context.createOscillator();
         osc.frequency.value = this.options.frequency;
         osc.type = this.options.waveform;
-        this.connectFrequency(osc);
 
         const gain = this.context.createGain();
         gain.gain.value = this.options.amplitude;
-        this.connectAmplitude(gain);
 
         osc.start();
         osc.connect(gain);
@@ -74,10 +66,10 @@ class LFO extends ParamConnectionSnR {
     }
 
     /**
-     * Returns currently playing GainNode for outgoing connections
+     * Returns currently playing GainNode for incoming connections
      * @param {number} id ID of node pair
      * @param {string} param name of parameter
-     * @returns {GainNode}
+     * @returns {AudioParam}
      */
     getPlayingParam(id, param) {
         if (this.playing[id]) {
@@ -88,6 +80,11 @@ class LFO extends ParamConnectionSnR {
 
     release(id, releaseTime = 0) {}
 
+    /**
+     * Stops currently playing oscillator at time and sets timer to disconnect nodes and trash references
+     * @param {number} id ID of node pair
+     * @param {number} stopTime When to stop
+     */
     stop(id, stopTime = 0) {
         if (stopTime === 0) stopTime = this.context.currentTime;
         const o = this.playing[id];
@@ -103,30 +100,22 @@ class LFO extends ParamConnectionSnR {
 
     setFrequency(freq) {
         this.options.frequency = freq;
+        for(const id in this.playing) {
+            this.playing[id].osc.frequency.value = freq;
+        }
     }
 
     setAmplitude(amp) {
         this.options.amplitude = amp;
+        for(const id in this.playing) {
+            this.playing[id].gain.gain.value = amp;
+        }
     }
 
     setWaveform(wav) {
         this.options.waveform = wav;
-    }
-
-    connectFrequency(osc) {
-        this.connectParam('frequency', osc.detune);
-        if (this.connections.frequency) {
-            this.connections.frequency.forEach((f) => {
-                f.connect(osc.detune);
-            });
-        }
-    }
-
-    connectAmplitude(gain) {
-        if (this.connections.amplitude) {
-            this.connections.amplitude.forEach((a) => {
-                a.connect(gain.gain);
-            });
+        for(const id in this.playing) {
+            this.playing[id].osc.type = wav;
         }
     }
 }

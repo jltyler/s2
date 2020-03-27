@@ -123,8 +123,6 @@ class Voice extends ParamConnectionReceiver {
 
         this.newOscillator = this.newOscillator.bind(this);
         this.play = this.play.bind(this);
-        this.connectOscParams = this.connectOscParams.bind(this);
-        this.connectParams = this.connectParams.bind(this);
         this.release = this.release.bind(this);
         this.stop = this.stop.bind(this);
         this.stopAll = this.stopAll.bind(this);
@@ -144,7 +142,6 @@ class Voice extends ParamConnectionReceiver {
         const o = this.context.createOscillator();
         o.type = this.options.waveform;
         o.frequency.value = frequency;
-        // this.connectOscParams(o);/
         o.connect(destination);
         o.start(startTime);
         return o;
@@ -186,10 +183,7 @@ class Voice extends ParamConnectionReceiver {
         const finalGain = this.context.createGain();
         finalGain.gain.value = opt.gain;
 
-        const finalDestination = getFinalDestination(opt.destination, this.context);
-
-        panner.connect(gain).connect(compressor).connect(finalGain); // .connect(finalDestination);
-        // this.connectParams(panner, gain);
+        panner.connect(gain).connect(compressor).connect(finalGain);
 
         const id = this.getOscId();
         this.playing[id] = [oscs, gain, opt.useEnvelope, panner, finalGain];
@@ -203,6 +197,12 @@ class Voice extends ParamConnectionReceiver {
         return id;
     }
 
+    /**
+     * Returns currently playing AudioParam for incoming connections
+     * @param {number} id ID of node
+     * @param {string} param name of parameter
+     * @returns {AudioParam}
+     */
     getPlayingParam(id, param) {
         // HACK THE PLANET!!! HACK THE PLANET!!!
         if (this.playing[id]) {
@@ -216,33 +216,17 @@ class Voice extends ParamConnectionReceiver {
 
     }
 
+    /**
+     * Get final gain node for use with outgoing audio connections
+     * @param {number} id ID of node
+     * @returns {GainNode}
+     */
     getPlayingFinal(id) {
         if (this.playing[id]) {
-            return this.playing[id][4]
+            return this.playing[id][4];
         }
     }
 
-    /**
-     * @private
-     */
-    connectOscParams(osc) {
-        if (this.connections.detune) {
-            this.connections.detune.forEach((d) => {
-                d.connect(osc.detune);
-            });
-        }
-    }
-
-    /**
-     * @private
-     */
-    connectParams(pan) {
-        if (this.connections.pan) {
-            this.connections.pan.forEach((p) => {
-                p.connect(pan.pan);
-            });
-        }
-    }
 
     /**
      * Start release schedule on note
@@ -294,22 +278,6 @@ class Voice extends ParamConnectionReceiver {
             this.changePlayingOscillators(key, value);
             return true;
         } else return false;
-    }
-
-    getPlayingOscillators() {
-        const oscs = {};
-        for (const k in this.playing) {
-            oscs[k] = this.playing[k][0];
-        }
-        return oscs;
-    }
-
-    getGainNodes() {
-        const gains = {};
-        for (const k in this.playing) {
-            gains[k] = this.playing[k][1];
-        }
-        return gains;
     }
 
     changePlayingOscillators(parameter, value) {

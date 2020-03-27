@@ -28,9 +28,9 @@ const Filter = (props) => {
         <div className="filter">
             <h3>{props.name}</h3>
             <div>
-                <Knob label="Frequency" handler={setOption.bind(null, filter, 'frequency')} min={0} max={22050} value={22050} />
-                <Knob label="Q" handler={setOption.bind(null, filter, 'Q')} min={0} max={11} curve={1} a={0.001} b={4.35} value={0.01} />
-                <Knob label="Gain" handler={setOption.bind(null, filter, 'gain')} min={-20.0} max={20.0} value={0.0} />
+                <Knob label="Frequency" handler={setOption.bind(null, filter, 'frequency')} min={0} max={22050} value={22050} continuous={true} />
+                <Knob label="Q" handler={setOption.bind(null, filter, 'Q')} min={0} max={11} curve={1} a={0.001} b={4.35} value={0.01} continuous={true} />
+                <Knob label="Gain" handler={setOption.bind(null, filter, 'gain')} min={-20.0} max={20.0} value={0.0} continuous={true} />
                 <select onChange={setType.bind(null, filter)}>
                     <option value="lowpass">Lowpass</option>
                     <option value="highpass">Highpass</option>
