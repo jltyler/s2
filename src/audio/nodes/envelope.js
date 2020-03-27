@@ -78,6 +78,29 @@ class Envelope extends ParamConnectionSource {
         if (this.playing[id]) return this.playing[id];
     }
 
+    release(id, releaseTime = 0) {
+        if (releaseTime === 0) releaseTime = this.context.currentTime;
+        if (this.playing[id]) {
+            const cs = this.playing[id];
+            cs.offset.cancelScheduledValues(releaseTime);
+            cs.offset.setValueAtTime(cs.offset.value, releaseTime);
+            cs.offset.linearRampToValueAtTime(this.options.base, releaseTime + this.options.release);
+            return releaseTime + this.options.release;
+        }
+    }
+
+    stop(id, stopTime = 0) {
+        if (stopTime === 0) stopTime = this.context.currentTime;
+        if (this.playing[id]) {
+            const cs = this.playing[id];
+            cs.stop(stopTime);
+            setTimeout(() => {
+                cs.disconnect();
+                delete this.playing[id];
+            }, (stopTime - this.context.currentTime) * 1000);
+        }
+    }
+
     /**
      * Attaches a release function that recieves a time to schedule the release envelope settings.
      * @param {GainNode} cs Node to attach the function to

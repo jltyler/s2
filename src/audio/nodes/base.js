@@ -72,6 +72,10 @@ class S2NodeBase {
     getPlayingParam(id, param) {
         console.warn('S2NodeBase::getPlayingParam() Unimplemented! This should be overloaded!');
     }
+
+    release(id, releaseTime = 0) {
+        // console.warn('S2NodeBase::release() Unimplemented! This should be overloaded!');
+    }
 }
 
 /**

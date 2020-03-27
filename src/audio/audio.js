@@ -16,12 +16,12 @@ class ParamConnection {
     constructor(source, dest, param) {
         if (source instanceof Envelope || source instanceof LFO) {
             if (dest instanceof LFO || dest instanceof Filter || dest instanceof Voice) {
-                if (dest.addConnection(param, source)) {
+                // if (dest.addConnection(param, source)) {
                     this.source = source;
                     this.dest = dest;
                     this.param = param;
                     this.isValid = true;
-                }
+                // }
             } else {
                 console.warn(`ParamConnection::ParamConnection(): ${dest} is not a valid class for destination`);
             }
@@ -99,7 +99,7 @@ class S2Audio {
     /**
      * Stop all noise and release keys
      */
-    stop() {
+    stopAll() {
         for (name in this.voices) {
             this.voices[name].stopAll();
         }
@@ -526,7 +526,7 @@ class S2Audio {
     }
 
     connectionHorror(name, destId) {
-        const connections = [];
+        let connections = [];
         const dest = this.getFromName(name);
         if (dest) {
             const c = this.getConnectionsByDestination(name);
@@ -534,7 +534,7 @@ class S2Audio {
                 if (pc instanceof ParamConnection){
                     const id = pc.source.newNode();
                     connections.push({node: pc.source, id});
-                    connections.concat(this.connectionHorror(pc.source.name, id));
+                    connections = connections.concat(this.connectionHorror(pc.source.name, id));
 
                     const destParam = pc.dest.getPlayingParam(destId, pc.param);
                     if (destParam instanceof Array) {
@@ -570,16 +570,29 @@ class S2Audio {
                 const fid = filter.newNode();
                 playing.filters.push({filter, id: fid});
                 voiceRef.getPlayingFinal(v.id).connect(filter.getPlaying(fid)).connect(this.context.destination);
-                playing.connections = playing.connections.concat(this.connectionHorror(des, fid))
-            }
-
-
+                playing.connections = playing.connections.concat(this.connectionHorror(dest, fid));
+            } else voiceRef.getPlayingFinal(v.id).connect(this.context.destination);
         }
         this.playing[note] = playing;
     }
 
     stop(note) {
+        if (note === undefined) return stopAll();
         const o = this.playing[note];
+        const releaseTime = o.voices.reduce((release, v) => {
+            const current = v.voice.release(v.id);
+            return release >= current ? release : current ;
+        }, this.context.currentTime);
+        o.connections.forEach((c) => {
+            c.node.release(c.id);
+            c.node.stop(c.id, releaseTime);
+        });
+        o.filters.forEach((f) => {
+            f.filter.stop(f.id, releaseTime);
+        });
+        delete this.playing[note];
+        // setTimeout(() => {
+        // }, (releaseTime - this.context.currentTime) * 1000);
     }
 
     /**
@@ -587,17 +600,8 @@ class S2Audio {
      */
     keysOn() {
         bindKeys(
-            ((note) => {
-                this.playing[note] = [];
-                for (const name in this.voices) {
-                    const v = this.voices[name];
-                    this.playing[note].push([v, v.play(NOTES[note], this.context.currentTime)]);
-                }
-            }).bind(this),
-            ((note) => {
-                const voices = this.playing[note];
-                voices.forEach((v) => v[0].release(v[1]));
-            }).bind(this)
+            this.play.bind(this),
+            this.stop.bind(this)
         );
         this.releaseKeys = releaseKeys;
     }

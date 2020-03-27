@@ -81,6 +81,16 @@ class Filter extends ParamConnectionReceiver {
         }
     }
 
+    stop(id, stopTime = 0) {
+        if (stopTime === 0) stopTime = this.context.currentTime;
+        if (this.playing[id]) {
+            setTimeout(() => {
+                this.playing[id].disconnect();
+                delete this.playing[id];
+            }, (stopTime - this.context.currentTime) * 1000 );
+        }
+    }
+
     connectParams(filter) {
         if (this.connections.frequency) {
             this.connections.frequency.forEach((f) => {

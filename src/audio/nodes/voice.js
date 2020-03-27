@@ -247,6 +247,7 @@ class Voice extends ParamConnectionReceiver {
     /**
      * Start release schedule on note
      * @param {number} id Id of note that was returned by play()
+     * @returns {number} release time of note
      */
     release(id) {
         const osc = this.playing[id][0];
@@ -257,6 +258,7 @@ class Voice extends ParamConnectionReceiver {
         stopOscs(osc, releaseTime);
         if (env) setTimeout(() => delete this.playing[id], (releaseTime - this.context.currentTime) * 1000);
         else delete this.playing[id];
+        return releaseTime;
     }
 
     /**

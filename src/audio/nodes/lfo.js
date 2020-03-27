@@ -1,5 +1,5 @@
 import {ParamConnectionSnR} from './base.js';
-import {newIdGenerator} from '../../Utility,js';
+import {newIdGenerator} from '../../Utility.js';
 
 const defaultLFO = {
     waveform: 'sine',
@@ -43,7 +43,7 @@ class LFO extends ParamConnectionSnR {
     }
 
     connect(destination) {
-        this.newNode().connect(destination);
+        // this.newNode().connect(destination);
     }
 
     newNode() {
@@ -60,18 +60,44 @@ class LFO extends ParamConnectionSnR {
         osc.connect(gain);
 
         const id = this.nextId();
-        this.playing[id] = [osc, gain];
+        this.playing[id] = {osc, gain};
         return id;
     }
 
+    /**
+     * Returns currently playing GainNode for outgoing connections
+     * @param {number} id ID of node pair
+     * @returns {GainNode}
+     */
     getPlaying(id) {
-        if (this.playing[id]) return this.playing[id][1];
+        if (this.playing[id]) return this.playing[id].gain;
     }
 
+    /**
+     * Returns currently playing GainNode for outgoing connections
+     * @param {number} id ID of node pair
+     * @param {string} param name of parameter
+     * @returns {GainNode}
+     */
     getPlayingParam(id, param) {
         if (this.playing[id]) {
-            if (param === 'frequency') return this.playing[id][0].detune;
-            else if (param === 'amplitude') return this.playing[id][1].gain;
+            if (param === 'frequency') return this.playing[id].osc.detune;
+            else if (param === 'amplitude') return this.playing[id].gain.gain;
+        }
+    }
+
+    release(id, releaseTime = 0) {}
+
+    stop(id, stopTime = 0) {
+        if (stopTime === 0) stopTime = this.context.currentTime;
+        const o = this.playing[id];
+        if (o) {
+            o.osc.stop(stopTime);
+            setTimeout(() => {
+                o.osc.disconnect();
+                o.gain.disconnect();
+                delete this.playing[id];
+            }, (stopTime - this.context.currentTime) * 1000);
         }
     }
 
