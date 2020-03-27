@@ -113,25 +113,16 @@ class Voice extends ParamConnectionReceiver {
         this.playing = {};
         this.getOscId = newIdGenerator();
 
-        /**
-         * Current connections that will be accessed when played
-         * @var {Object} */
-        this.connections = {
-            'detune': null,
-            'pan': null,
-        };
+        this.connections.push('detune', 'pan');
 
         this.newOscillator = this.newOscillator.bind(this);
         this.play = this.play.bind(this);
         this.release = this.release.bind(this);
         this.stop = this.stop.bind(this);
         this.stopAll = this.stopAll.bind(this);
-        this.addConnection = this.addConnection.bind(this);
-        this.removeConnection = this.removeConnection.bind(this);
         this.setOption = this.setOption.bind(this);
         this.getOption = this.getOption.bind(this);
         this.getEnvelope = this.getEnvelope.bind(this);
-
     }
 
     /**

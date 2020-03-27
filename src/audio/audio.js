@@ -43,7 +43,7 @@ class ParamConnection {
     }
 
     remove() {
-        this.dest.removeConnection(this.param, this.source);
+        // this.dest.removeConnection(this.param, this.source);
     }
 
     // connect() {
@@ -363,10 +363,7 @@ class S2Audio {
         ];
         for (const name of combo) {
             if (name === exclude) continue;
-            const connections = this.getFromName(name).getConnections();
-            for (const param in connections) {
-                c.push([name, param]);
-            }
+            this.getFromName(name).getConnections().forEach((p) => c.push([name, p]));
         }
         return c;
     }

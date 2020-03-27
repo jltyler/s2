@@ -25,10 +25,7 @@ class LFO extends ParamConnectionSnR {
     constructor(context, options = {}) {
         super(context, {...defaultLFO, ...options});
 
-        this.connections = {
-            'frequency': null,
-            'amplitude': null,
-        };
+        this.connections.push('frequency', 'amplitude');
         this.playing = {};
         this.nextId = newIdGenerator();
 
@@ -98,6 +95,10 @@ class LFO extends ParamConnectionSnR {
         }
     }
 
+    /**
+     * Set frequency option and modify running oscillators
+     * @param {number} freq frequency
+     */
     setFrequency(freq) {
         this.options.frequency = freq;
         for(const id in this.playing) {
@@ -105,6 +106,10 @@ class LFO extends ParamConnectionSnR {
         }
     }
 
+    /**
+     * Set amplitude option and modify running gain nodes
+     * @param {number} amp Amplitude
+     */
     setAmplitude(amp) {
         this.options.amplitude = amp;
         for(const id in this.playing) {
@@ -112,6 +117,10 @@ class LFO extends ParamConnectionSnR {
         }
     }
 
+    /**
+     * Set waveform option and modify running oscillators
+     * @param {string} wav waveform name
+     */
     setWaveform(wav) {
         this.options.waveform = wav;
         for(const id in this.playing) {

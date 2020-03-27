@@ -28,10 +28,7 @@ class Filter extends ParamConnectionReceiver {
     constructor(context, options = {}) {
         super(context, {...defaultFilterOptions, ...options});
 
-        this.connections = {
-            'frequency': null,
-            'Q': null,
-        };
+        this.connections.push('frequency', 'Q');
 
         this.nextId = newIdGenerator();
         this.playing = {};
@@ -49,6 +46,7 @@ class Filter extends ParamConnectionReceiver {
         filter.frequency.value = this.options.frequency;
         filter.Q.value = this.options.Q;
         filter.type = this.options.type;
+        filter.gain.value = this.options.gain;
 
         const id = this.nextId();
         this.playing[id] = filter;

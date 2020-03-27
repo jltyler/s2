@@ -8,9 +8,9 @@ class S2NodeBase {
      * @param {Object} options Options object
      */
     constructor(context, options = {}) {
-        this.setName(`S2NodeBase ${(()=>{
+        this.setName(`S2NodeBase ${(() => {
             let numero = -1;
-            return ()=>++numero;
+            return () => ++numero;
         })()}`);
         if (context && context instanceof AudioContext) {
             this.context = context;
@@ -60,11 +60,6 @@ class S2NodeBase {
         }
     }
 
-    getDestination() {
-        console.warn('S2NodeBase::getDestination() Unimplemented! This should be overloaded!');
-        return this.context;
-    }
-
     getPlaying(id) {
         console.warn('S2NodeBase::getPlaying() Unimplemented! This should be overloaded!');
     }
@@ -86,10 +81,6 @@ class ParamConnectionSource extends S2NodeBase {
         super(context, options);
     }
 
-    connect(dest) {
-        console.warn('ParamConnectionSource::connect() Unimplemented! This should be overloaded!');
-    }
-
     newNode(dest) {
         console.warn('ParamConnectionSource::newNode() Unimplemented! This should be overloaded!');
     }
@@ -101,71 +92,21 @@ class ParamConnectionSource extends S2NodeBase {
 class ParamConnectionReceiver extends S2NodeBase {
     constructor(context, options) {
         super(context, options);
-        this.connections = {};
+        this.connections = [];
     }
 
     /**
-     * Takes name of param and target AudioParam instance. Executes 'connect' on the all sources in connections[param] with 'target' as argument
-     * @param {string} param Parameter name
-     * @param {AudioParam} target Target parameter instance
+     * Is parameter a valid receiver?
+     * @param {string} param parameter name
+     * @returns {Boolean}
      */
-    connectParam(param, target) {
-        if (this.connections[param]) {
-            this.connections[param].forEach((s) => {
-                s.connect(target);
-            });
-        }
-    }
-
-    /**
-     * Adds source to parameter connection list if valid
-     * @param {string} param Parameter name
-     * @param {AudioNode} source Source node
-     */
-    addConnection(param, source) {
-        if (param in this.connections) {
-            if (source instanceof ParamConnectionSource || source instanceof ParamConnectionSnR) {
-                if (this.connections[param]) {
-                    this.connections[param].push(source);
-                } else {
-                    this.connections[param] = [source];
-                }
-                return true;
-            } else {
-                console.warn(`Source is NOT a valid connector!`);
-                return false;
-            }
-        } else {
-            console.warn(`Parameter '${param}' is NOT a valid connection receiver!`);
-            return false;
-        }
-    }
-
-    getConnection(param) {
-        if (param in this.connections) {
-            return this.connections[param];
-        }
+    isParamReceiver(param) {
+        if (this.connections.includes(param)) return true;
+        return false;
     }
 
     getConnections() {
         return this.connections;
-    }
-
-    removeConnection(param, source) {
-        console.log(this.name + '.removeConnection');
-        console.log('param:', param);
-        console.log('source:', source);
-        if (param in this.connections) {
-            const paramList = this.connections[param];
-            if (paramList && source && paramList.includes(source)) {
-                paramList.splice(paramList.indexOf(source), 1);
-                if (paramList.length === 0) {
-                    this.connections[param] = null;
-                }
-                return true;
-            }
-        }
-        return false;
     }
 }
 
@@ -175,10 +116,6 @@ class ParamConnectionReceiver extends S2NodeBase {
 class ParamConnectionSnR extends ParamConnectionReceiver {
     constructor(context, options) {
         super(context, options);
-    }
-
-    connect(dest) {
-        console.warn('ParamConnectionSnR::connect() Unimplemented! This should be overloaded!');
     }
 
     newNode(dest) {
