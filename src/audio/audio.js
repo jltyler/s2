@@ -409,12 +409,23 @@ class S2Audio {
     /**
      * Returns Array of all connections with provided destination
      * @param {string} destName Destination name
-     * @returns {ParamConnection[]} Connection or null
+     * @returns {ParamConnection[]}
      */
     getConnectionsByDestination(destName) {
         const node = this.getFromName(destName);
-        if (!node) return null;
+        if (!node) return [];
         return this.paramConnections.filter((o) => o.dest === node);
+    }
+
+    /**
+     * Returns Array of all connections with provided source
+     * @param {string} sourceName Source name
+     * @returns {ParamConnection[]}
+     */
+    getConnectionsBySource(sourceName) {
+        const node = this.getFromName(sourceName);
+        if (!node) return [];
+        return this.paramConnections.filter((o) => o.source === node);
     }
 
     /**

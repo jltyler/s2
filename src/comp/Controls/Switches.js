@@ -9,14 +9,14 @@ class Switch extends Component {
     }
 
     clickHandler() {
-        if (this.props.handler) this.props.handler(!this.state.active);
+        if (this.props.handler) this.props.handler(!this.props.value);
         this.setState((prevState) => ({active: (!prevState.active)}));
     }
 
     render() {
         return (
             <div className="switch-container">
-                <div className={'switch ' + (this.state.active ? 'on' : 'off') } onClick={this.clickHandler.bind(this)} /><br />
+                <div className={'switch ' + (this.props.value ? 'on' : 'off') } onClick={this.clickHandler.bind(this)} /><br />
                 {this.props.label && <div className="switch-label">{this.props.label}</div>}
             </div>
         );
