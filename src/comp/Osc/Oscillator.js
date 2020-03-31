@@ -12,6 +12,12 @@ const setVoiceOption = (voice, key, value) => {
     voice.setOption(key, value);
 };
 
+const usingEnvelope = (voice) => {
+    const b = voice.getOption('useEnvelope');
+    console.log('b:', b);
+    return voice.getOption('useEnvelope');
+};
+
 const setEnvelopeOption = (voice, key, value) => {
     voice.getEnvelope().setOption(key, value);
 };
@@ -59,7 +65,7 @@ const Oscillator = (props) => {
             </div>
             <div className="oscillator-envelope">
                 <h2>Envelope (gain)</h2>
-                <Switch label="Active" handler={setVoiceOption.bind(null, voice, 'useEnvelope')} />
+                <Switch label="Active" handler={setVoiceOption.bind(null, voice, 'useEnvelope')} value={usingEnvelope(voice)} />
                 <Knob label="Attack" handler={setEnvelopeOption.bind(null, voice, 'attack')} min={1} max={10} curve={1} a={0.001} b={4.35} defaultValue={0.1} />
                 <Knob label="Decay" handler={setEnvelopeOption.bind(null, voice, 'decay')} min={1} max={10} curve={1} a={0.001} b={4.35} defaultValue={0.001} />
                 <Knob label="Sustain" handler={setEnvelopeOption.bind(null, voice, 'sustain')} min={0} max={1.0} value={1.0} defaultValue={1.0} />
