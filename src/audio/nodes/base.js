@@ -60,8 +60,12 @@ class S2NodeBase {
         }
     }
 
-    getPlaying(id) {
-        console.warn('S2NodeBase::getPlaying() Unimplemented! This should be overloaded!');
+    getPlayingOut(id) {
+        console.warn('S2NodeBase::getPlayingOut() Unimplemented! This should be overloaded!');
+    }
+
+    getPlayingIn(id) {
+        console.warn('S2NodeBase::getPlayingIn() Unimplemented! This should be overloaded!');
     }
 
     getPlayingParam(id, param) {

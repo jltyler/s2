@@ -1,5 +1,4 @@
 import {ParamConnectionReceiver} from './base.js';
-import {getFinalDestination} from './util.js';
 import { newIdGenerator } from '../../Utility.js';
 
 const defaultFilterOptions = {
@@ -58,8 +57,12 @@ class Filter extends ParamConnectionReceiver {
      * @param {number} id ID of node
      * @returns {BiquadFilterNode}
      */
-    getPlaying(id) {
+    getPlayingOut(id) {
         if (this.playing[id]) return this.playing[id];
+    }
+
+    getPlayingIn(id) {
+        return this.getPlayingOut(id);
     }
 
     /**

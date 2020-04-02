@@ -1,16 +1,6 @@
 import React, {Component} from 'react';
-import S2Audio from '../../audio/audio';
 import { Switch } from './Switches';
-import { StringDecoder } from 'string_decoder';
 
-/**
- *
- * @param {S2Audio} s2
- * @param {*} source
- * @param {*} dest
- * @param {*} param
- * @param {*} value
- */
 const setConnection = (s2, source, dest, param, value) => {
     if (value) {
         s2.addConnection(source, dest, param);
@@ -54,7 +44,7 @@ class ParamConnection extends Component {
         if (this.state.show) {
             return this.s2.getParamConnectionDestinations(this.name).map((d, i) => {
                 const on = active.some((dd) => (dd.dest.name === d[0] && dd.param === d[1]));
-                return (<li key={i}>
+                return (<li key={d}>
                     <Switch handler={this.setConnection.bind(this, d[0], d[1])} value={on} />
                     <span>${d[0]}.${d[1]}</span>
                 </li>);
@@ -63,8 +53,8 @@ class ParamConnection extends Component {
         } else {
             return this.state.current.map((d, i) => {
                 const on = active.some((dd) => (dd.dest.name === d[0] && dd.param === d[1]));
-                console.log(`${d[0]}.${d[1]}: `, on);
-                return (<li key={i}>
+                // console.log(`${d[0]}.${d[1]}: `, on);
+                return (<li key={d}>
                     <Switch handler={this.setConnection.bind(this, d[0], d[1])} value={on} />
                     <span>${d[0]}.${d[1]}</span>
                     {!on ? <button onClick={this.removeCurrent.bind(this, i)}>X</button> : ''}
@@ -87,21 +77,5 @@ class ParamConnection extends Component {
         </div>);
     }
 }
-
-// const ParamConnection = (props) => {
-//     const validDestinations = props.s2.getParamConnectionDestinations(props.name);
-//     let showList = false;
-//     return (<div>
-//         <h4>Parameter Connections</h4>
-//         <ul className="param-connection-list">
-//             {validDestinations.map((d, i) => {
-//                 return (<li key={i}>
-//                     <Switch handler={setConnection.bind(null, props.s2, props.name, d[0], d[1])} />
-//                         <span>${d[0]}.${d[1]}</span>
-//                     </li>);
-//             })}
-//         </ul>
-//     </div>);
-// };
 
 export default ParamConnection;

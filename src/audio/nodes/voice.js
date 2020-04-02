@@ -1,5 +1,5 @@
 import {S2NodeBase, ParamConnectionReceiver} from './base.js';
-import {getFinalDestination, ALPHA} from './util.js';
+import {waves, ALPHA} from './util.js';
 import {newIdGenerator} from '../../Utility.js';
 
 const defaultGainEnvelope = {
@@ -131,7 +131,10 @@ class Voice extends ParamConnectionReceiver {
      */
     newOscillator(frequency, destination, startTime) {
         const o = this.context.createOscillator();
-        o.type = this.options.waveform;
+        if (this.options.waveform === 'crazy') {
+            // console.log('waves.crazy:', waves.crazy);
+            o.setPeriodicWave(waves.crazy);
+        } else o.type = this.options.waveform;
         o.frequency.value = frequency;
         o.connect(destination);
         o.start(startTime);
@@ -212,7 +215,7 @@ class Voice extends ParamConnectionReceiver {
      * @param {number} id ID of node
      * @returns {GainNode}
      */
-    getPlayingFinal(id) {
+    getPlayingOut(id) {
         if (this.playing[id]) {
             return this.playing[id][4];
         }

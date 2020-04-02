@@ -6,6 +6,7 @@ import Voice from './nodes/voice.js';
 import Sequences from './sequences.js';
 import {bind as bindKeys, unbind as unbindKeys, release as releaseKeys} from './keys.js';
 import {NOTES, ALPHA} from './notes.js';
+import {generateWaves} from './nodes/util.js';
 
 const AudioContext = window.AudioContext || window.webkitAudioContext;
 
@@ -71,6 +72,8 @@ class S2Audio {
 
         this.releaseKeys = () => null;
 
+        this.analyzer = null;
+
         // In case these are called from DOM events
         this.init = this.init.bind(this);
         this.stop = this.stop.bind(this);
@@ -87,6 +90,9 @@ class S2Audio {
         if (this.initialized) {console.log("S2Audio::init(): Already initialized"); return;}
         this.context = new AudioContext();
 
+        this.analyzer = this.context.createAnalyser();
+
+        generateWaves(this.context);
         // const name = this.newNode('TestEcho', Echo, {delay: 0.8, decay: 0.55});
         // this.testEcho = this.getFromName(name);
         // // const fdest = this.testEcho.getDestination();
@@ -348,10 +354,9 @@ class S2Audio {
         return this.getNodesOfType(Echo);
     }
 
-    // User interface information and config functions
     /**
      * Returns array of strings representing valid connection destinations and parameters
-     * @param {string} exclude Name to exclude
+     * @param {string} exclude Excludes node from results as well as all active connections to this node
      * @returns {Array[]} Array of string tuples: [destinationName, parameterName]
      */
     getParamConnectionDestinations(exclude) {
@@ -363,6 +368,7 @@ class S2Audio {
         ];
         for (const name of combo) {
             if (name === exclude) continue;
+            if (this.getConnectionsByDestination(exclude).some((o) => o.source.name === name)) continue;
             this.getFromName(name).getConnections().forEach((p) => c.push([name, p]));
         }
         return c;
@@ -558,25 +564,36 @@ class S2Audio {
         let connections = [];
         const dest = this.getFromName(name);
         if (dest) {
-            const c = this.getConnectionsByDestination(name);
-            c.forEach((pc) => {
-                if (pc instanceof ParamConnection){
-                    const id = pc.source.newNode();
-                    connections.push({node: pc.source, id});
-                    connections = connections.concat(this.connectionHorror(pc.source.name, id));
+            this.getConnectionsByDestination(name).forEach((pc) => {
+                const id = pc.source.newNode();
+                connections.push({node: pc.source, id});
+                connections = connections.concat(this.connectionHorror(pc.source.name, id));
 
-                    const destParam = pc.dest.getPlayingParam(destId, pc.param);
-                    if (destParam instanceof Array) {
-                        const source = pc.source.getPlaying(id);
-                        destParam.forEach((p) => source.connect(p));
-                    } else pc.source.getPlaying(id).connect(destParam);
-                }
+                const destParam = pc.dest.getPlayingParam(destId, pc.param);
+                if (destParam instanceof Array) {
+                    const source = pc.source.getPlaying(id);
+                    destParam.forEach((p) => source.connect(p));
+                } else pc.source.getPlaying(id).connect(destParam);
             });
         }
         return connections;
     }
 
-    audioConnectionHorror() {}
+    audioConnectionHorror(name, id) {
+        let connections = [];
+        const source = this.getFromName(name);
+        const destName = this.getAudioConnectionBySource(name);
+        if (destName) {
+            console.log('name, destName:', name, destName);
+            const dest = this.getFromName(destName);
+            const dId = dest.newNode();
+            connections = connections.concat(this.connectionHorror(destName, dId));
+            connections.push({node: dest, id: dId});
+            connections = connections.concat(this.audioConnectionHorror(destName, dId));
+            source.getPlayingOut(id).connect(dest.getPlayingIn(dId));
+        }
+        return connections;
+    }
 
     /**
      * Play a note. Creates node instancesx, connects them, and activates them
@@ -597,14 +614,21 @@ class S2Audio {
 
             playing.connections = playing.connections.concat(this.connectionHorror(name, v.id));
 
-            const dest = this.getAudioConnectionBySource(name);
-            if (dest) {
-                const filter = this.getFilter(dest);
-                const fid = filter.newNode();
-                playing.filters.push({filter, id: fid});
-                voiceRef.getPlayingFinal(v.id).connect(filter.getPlaying(fid)).connect(this.context.destination);
-                playing.connections = playing.connections.concat(this.connectionHorror(dest, fid));
-            } else voiceRef.getPlayingFinal(v.id).connect(this.context.destination);
+            playing.connections = playing.connections.concat(this.audioConnectionHorror(name, v.id));
+            const last = playing.connections.slice(-1).pop();
+            // console.log('last:', last);
+            if (last) {
+                last.node.getPlayingOut(last.id).connect(this.context.destination);
+            } else voiceRef.getPlayingOut(v.id).connect(this.context.destination);
+
+            // const dest = this.getAudioConnectionBySource(name);
+            // if (dest) {
+            //     const filter = this.getFilter(dest);
+            //     const fid = filter.newNode();
+            //     playing.filters.push({filter, id: fid});
+            //     voiceRef.getPlaying(v.id).connect(filter.getPlaying(fid)).connect(this.context.destination);
+            //     playing.connections = playing.connections.concat(this.connectionHorror(dest, fid));
+            // } else voiceRef.getPlaying(v.id).connect(this.context.destination);
         }
         this.playing[note] = playing;
     }

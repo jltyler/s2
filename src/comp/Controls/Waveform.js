@@ -16,10 +16,14 @@ class Waveform extends Component {
     }
 
     render() {
+        const waveforms = ['sine', 'square', 'triangle', 'sawtooth'];
+        if (this.props.waves && this.props.waves instanceof Array) {
+            waveforms.concat(this.props.waves);
+        }
         return (
             <div className="waveform-container">
                 <ul>
-                    {['sine', 'square', 'triangle', 'sawtooth'].map((w, i) => {
+                    {waveforms.map((w, i) => {
                         return <li className={this.state.selected === w ? 'selected' : ''} key={i} onClick={this.clickHandler.bind(this, w)}>{w}</li>;
                     })}
                 </ul>
