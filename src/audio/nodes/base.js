@@ -85,7 +85,7 @@ class ParamConnectionSource extends S2NodeBase {
         super(context, options);
     }
 
-    newNode(dest) {
+    newNode() {
         console.warn('ParamConnectionSource::newNode() Unimplemented! This should be overloaded!');
     }
 }

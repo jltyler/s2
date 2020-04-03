@@ -602,8 +602,7 @@ class S2Audio {
     play(note) {
         const playing = {
             voices: [],
-            connections: [],
-            filters: []
+            connections: []
         };
         for (const name in this.voices) {
             const v = {};
@@ -616,19 +615,9 @@ class S2Audio {
 
             playing.connections = playing.connections.concat(this.audioConnectionHorror(name, v.id));
             const last = playing.connections.slice(-1).pop();
-            // console.log('last:', last);
             if (last) {
                 last.node.getPlayingOut(last.id).connect(this.context.destination);
             } else voiceRef.getPlayingOut(v.id).connect(this.context.destination);
-
-            // const dest = this.getAudioConnectionBySource(name);
-            // if (dest) {
-            //     const filter = this.getFilter(dest);
-            //     const fid = filter.newNode();
-            //     playing.filters.push({filter, id: fid});
-            //     voiceRef.getPlaying(v.id).connect(filter.getPlaying(fid)).connect(this.context.destination);
-            //     playing.connections = playing.connections.concat(this.connectionHorror(dest, fid));
-            // } else voiceRef.getPlaying(v.id).connect(this.context.destination);
         }
         this.playing[note] = playing;
     }
@@ -648,9 +637,9 @@ class S2Audio {
             c.node.release(c.id);
             c.node.stop(c.id, releaseTime);
         });
-        o.filters.forEach((f) => {
-            f.filter.stop(f.id, releaseTime);
-        });
+        // o.filters.forEach((f) => {
+        //     f.filter.stop(f.id, releaseTime);
+        // });
         delete this.playing[note];
         // setTimeout(() => {
         // }, (releaseTime - this.context.currentTime) * 1000);

@@ -79,7 +79,10 @@ const defaultVoiceOptions = {
  * Stops an oscillator or an array of oscillators at the specified time
  */
 const stopOscs = (osc, stopTime = 0) => {
-        osc.forEach((o) => o.stop(stopTime));
+    osc.forEach((o) => {
+        o.stop(stopTime);
+        o.disconnect();
+    });
 };
 
 /**
