@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import ReactDOM from 'react-dom';
 import LandingPage from './comp/Landing';
+import './reset.css';
 import './main.css';
 import S2Audio from './audio/audio';
 import Nav from "./comp/Nav";

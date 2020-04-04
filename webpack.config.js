@@ -16,7 +16,7 @@ module.exports = {
     module: {
         rules: [
             {
-                test: /\.js$/,
+                test: /\.(js|jsx)$/,
                 exclude: /node_modules/,
                 use: {
                     loader: "babel-loader"
@@ -40,7 +40,16 @@ module.exports = {
                 use: {
                     loader: "file-loader?name=img/[name]-[md5:hash:base64:12].[ext]"
                 }
-            }
+            },
+            {
+                test: /\.svg$/,
+                use: {
+                    loader: 'svg-url-loader',
+                    options: {
+                      limit: 10000,
+                    },
+                  },
+            },
         ]
     },
     plugins: [

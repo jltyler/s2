@@ -1,6 +1,5 @@
 import React from 'react';
 import {Knob} from '../Controls/Knobs';
-import './LFOs.css';
 import ParamConnection from '../Controls/ParamConnection';
 import Waveform from '../Controls/Waveform';
 

@@ -26,7 +26,7 @@ class Echo extends ParamConnectionSnR {
 
     newNode() {
         const input = this.context.createGain();
-        const delay = this.context.createDelay(5);
+        const delay = this.context.createDelay(2);
         delay.delayTime.value = this.options.delay;
         const decay = this.context.createGain();
         decay.gain.value = this.options.decay;

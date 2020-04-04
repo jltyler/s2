@@ -1,6 +1,5 @@
 import React from 'react';
 import {Knob} from '../Controls/Knobs';
-import './Envelope.css';
 import ParamConnection from '../Controls/ParamConnection';
 
 const setEnvelopeOption = (envelope, key, value) => {

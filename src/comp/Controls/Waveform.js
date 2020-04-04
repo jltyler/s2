@@ -1,4 +1,8 @@
 import React, {Component} from 'react';
+import sineWave from '../../img/waveform/sine.svg';
+import squareWave from '../../img/waveform/square.svg';
+import triangleWave from '../../img/waveform/triangle.svg';
+import sawWave from '../../img/waveform/saw.svg';
 
 class Waveform extends Component {
     constructor(props) {
@@ -20,11 +24,12 @@ class Waveform extends Component {
         if (this.props.waves && this.props.waves instanceof Array) {
             waveforms.concat(this.props.waves);
         }
+        const images = [sineWave, squareWave, triangleWave, sawWave];
         return (
             <div className="waveform-container">
                 <ul>
                     {waveforms.map((w, i) => {
-                        return <li className={this.state.selected === w ? 'selected' : ''} key={i} onClick={this.clickHandler.bind(this, w)}>{w}</li>;
+                        return <li className={this.state.selected === w ? 'selected' : ''} key={i} onClick={this.clickHandler.bind(this, w)}><img width="50px" height="50px" src={images[i]} /></li>;
                     })}
                 </ul>
             </div>

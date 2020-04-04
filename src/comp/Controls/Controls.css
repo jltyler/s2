@@ -125,10 +125,18 @@
 .waveform-container li {
     display: inline-block;
     padding: 3px;
-    border:1px solid green;
+    /* border:1px solid #008000; */
 }
 
-.waveform-container li.selected {
-    color: greenyellow;
+.waveform-container img {
+    filter: invert(25%) sepia(98%) saturate(1740%) hue-rotate(95deg) brightness(93%) contrast(106%);
+}
+
+/* .waveform-container li.selected {
+    color: #adff2f;
     border-color: greenyellow;
+} */
+
+.waveform-container li.selected img {
+    filter: invert(92%) sepia(32%) saturate(1008%) hue-rotate(26deg) brightness(97%) contrast(117%);
 }

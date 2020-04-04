@@ -10,6 +10,8 @@
 
 .oscillators {
     overflow-x: scroll;
+    overflow-y: hidden;
+    white-space: nowrap;
 }
 
 .oscillator-general,
@@ -24,7 +26,47 @@
     vertical-align: top;
 }
 
-.add-oscillator, .add-lfo, .add-envelope, .add-filter {
+.LFO {
+    display: inline-block;
+    vertical-align: top;
+    min-width: 450px;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.39);
+    padding: 2em;
+    background-color: darkslateblue;
+}
+
+.filter {
+    display: inline-block;
+    vertical-align: top;
+    min-width: 350px;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.39);
+    padding: 2em;
+    background-color: darkslateblue;
+}
+
+.envelope {
+    display: inline-block;
+    vertical-align: top;
+    min-width: 350px;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.39);
+    padding: 2em;
+    background-color: darkslateblue;
+}
+
+.echo {
+    display: inline-block;
+    vertical-align: top;
+    min-width: 250px;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.39);
+    padding: 2em;
+    background-color: darkslateblue;
+}
+
+.add-oscillator, .add-lfo, .add-envelope, .add-filter, .add-echo {
     display: inline-block;
     vertical-align: top;
     min-width: 50px;
@@ -45,4 +87,9 @@
 .add-envelope {
     background-color: whitesmoke;
     color: darkslategray;
+}
+
+.add-echo {
+    background-color: goldenrod;
+    color: darkslategrey;
 }

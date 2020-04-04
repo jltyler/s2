@@ -18,7 +18,7 @@ const Echo = (props) => {
     return (
         <div className="echo">
             <h3 onDoubleClick={logHandler}>{props.name}</h3>
-            <Knob label="Delay" handler={setDelay.bind(null, echo)} min={0.001} max={4} defaultValue={0.2} continuous={true} />
+            <Knob label="Delay" handler={setDelay.bind(null, echo)} min={0.001} max={2} defaultValue={0.2} continuous={true} />
             <Knob label="Decay Gain" handler={setDecay.bind(null, echo)} min={0.001} max={0.9999} defaultValue={0.2} continuous={true} />
 
         </div>
