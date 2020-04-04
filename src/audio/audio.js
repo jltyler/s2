@@ -584,7 +584,6 @@ class S2Audio {
         const source = this.getFromName(name);
         const destName = this.getAudioConnectionBySource(name);
         if (destName) {
-            console.log('name, destName:', name, destName);
             const dest = this.getFromName(destName);
             const dId = dest.newNode();
             connections = connections.concat(this.connectionHorror(destName, dId));
@@ -615,7 +614,7 @@ class S2Audio {
 
             playing.connections = playing.connections.concat(this.audioConnectionHorror(name, v.id));
             const last = playing.connections.slice(-1).pop();
-            if (last) {
+            if (last && (last.node instanceof Filter || last.node instanceof Echo)) {
                 last.node.getPlayingOut(last.id).connect(this.context.destination);
             } else voiceRef.getPlayingOut(v.id).connect(this.context.destination);
         }

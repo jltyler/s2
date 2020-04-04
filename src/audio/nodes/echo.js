@@ -22,15 +22,6 @@ class Echo extends ParamConnectionSnR {
         this.playing = {};
         this.connections.push('decay', 'delay');
         this.nextId = newIdGenerator();
-
-        // this.input = this.context.createGain();
-        // this.delay = this.context.createDelay();
-        // this.delay.delayTime.value = this.options.delay;
-        // this.gain = this.context.createGain();
-        // this.gain.gain.value = this.options.decay;
-        // this.delay.connect(this.gain).connect(this.delay);
-        // this.pass = this.context.createGain();
-        // this.pass.connect(this.delay);
     }
 
     newNode() {
@@ -76,10 +67,6 @@ class Echo extends ParamConnectionSnR {
         }
     }
 
-    // getDestination() {
-    //     return this.pass;
-    // }
-
     setDelay(delay) {
         this.options.delay = delay;
         for (const id in this.playing) {
@@ -93,30 +80,6 @@ class Echo extends ParamConnectionSnR {
             this.playing[id].decay.gain.value = decay;
         }
     }
-
-    // connect(node) {
-    //     this.delay.connect(node);
-    //     this.pass.connect(node);
-    // }
-
-    // connectSource(node) {
-    //     node.connect(this.pass);
-    //     // node.connect(this.delay);
-    // }
-
-    // disconnect(node) {
-    //     this.delay.disconnect(node);
-    //     this.pass.disconnect(node);
-    // }
-
-    // disconnectSource(node) {
-    //     node.disconnect(this.pass);
-    //     // node.disconnect(this.delay);
-    // }
-
-    // setName(name) {
-    //     this.name = name;
-    // }
 }
 
 export default Echo;

@@ -46,12 +46,6 @@ class Envelope extends ParamConnectionSource {
         cs.offset.setValueAtTime(o.base, startTime);
         cs.offset.linearRampToValueAtTime(o.base + o.scale, startTime + o.attack);
         cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay);
-        if (o.useRelease) {
-            this.attachRelease(cs);
-        } else {
-            cs.offset.linearRampToValueAtTime(o.base + (o.scale * o.sustain), startTime + o.attack + o.decay + o.length);
-            cs.offset.linearRampToValueAtTime(o.base, startTime + o.attack + o.decay + o.length + o.release);
-        }
         cs.start();
 
         const id = this.nextId();
@@ -78,8 +72,9 @@ class Envelope extends ParamConnectionSource {
         if (releaseTime === 0) releaseTime = this.context.currentTime;
         if (this.playing[id]) {
             const cs = this.playing[id];
+            const hold = cs.offset.value;
             cs.offset.cancelScheduledValues(releaseTime);
-            cs.offset.setValueAtTime(cs.offset.value, releaseTime);
+            cs.offset.setValueAtTime(hold, releaseTime);
             cs.offset.linearRampToValueAtTime(this.options.base, releaseTime + this.options.release);
             return releaseTime + this.options.release;
         }

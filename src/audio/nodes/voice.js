@@ -36,7 +36,6 @@ class GainEnvelope extends S2NodeBase {
      */
     newEnvelope(startTime) {
         const gain = this.context.createGain();
-        gain.gain.cancelScheduledValues(startTime);
         gain.gain.setValueAtTime(0, startTime);
         gain.gain.linearRampToValueAtTime(1, startTime + this.options.attack);
         gain.gain.linearRampToValueAtTime(this.options.sustain, startTime + this.options.attack + this.options.decay);
@@ -50,8 +49,9 @@ class GainEnvelope extends S2NodeBase {
      */
     attachRelease(gain) {
         gain.release = ((stopTime) => {
+            const hold = gain.gain.value;
             gain.gain.cancelScheduledValues(stopTime);
-            gain.gain.setValueAtTime(gain.gain.value, stopTime);
+            gain.gain.setValueAtTime(hold, stopTime);
             gain.gain.linearRampToValueAtTime(0, stopTime + this.options.release);
             return stopTime + this.options.release;
         }).bind(this);
@@ -81,7 +81,6 @@ const defaultVoiceOptions = {
 const stopOscs = (osc, stopTime = 0) => {
     osc.forEach((o) => {
         o.stop(stopTime);
-        o.disconnect();
     });
 };
 
@@ -223,7 +222,6 @@ class Voice extends ParamConnectionReceiver {
             return this.playing[id][4];
         }
     }
-
 
     /**
      * Start release schedule on note
