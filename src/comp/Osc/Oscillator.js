@@ -40,7 +40,7 @@ const setWaveform = (voice, e) => {
 const Oscillator = (props) => {
     const voice = props.interface.getVoice(props.name);
     return (
-        <div className="oscillator">
+        <div className="node oscillator">
             <h3 onDoubleClick={logHandler}>{props.name}</h3>
             <div className="oscillator-general">
                 <div className="oscillator-general-global">

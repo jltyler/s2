@@ -22,7 +22,7 @@ const setWaveform = (LFO, wav) => {
 const LFO = (props) => {
     const lfo = props.s2.getLFO(props.name);
     return (
-        <div className="LFO">
+        <div className="node LFO">
         <h2>{props.name}</h2>
             <Knob label="Frequency" handler={setFrequency.bind(null, lfo)} min={0.01} max={100} continuous={true} />
             <Knob label="Amplitude" handler={setAmplitude.bind(null, lfo)} min={0.01} max={1000} continuous={true} />

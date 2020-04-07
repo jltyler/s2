@@ -61,9 +61,6 @@ class Main extends Component {
                 <button onClick={() => console.log('Connections', s2audio.paramConnections)}>Connections</button>
                 <button onClick={() => console.log('Nodes', s2audio.getAllNodes())}>Nodes</button>
                 <button onClick={() => console.log('Debug', s2audio.getConnectionsDebug())}>Debug connections</button>
-                <header className="header">
-                <Nav />
-                </header>
                 <main className="main">
                     {this.renderMainDisplay()}
                 </main>

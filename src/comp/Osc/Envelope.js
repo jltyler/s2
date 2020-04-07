@@ -9,7 +9,7 @@ const setEnvelopeOption = (envelope, key, value) => {
 const Envelope = (props) => {
     const envelope = props.s2.getEnvelope(props.name);
     return (
-    <div className="envelope">
+    <div className="node envelope">
         <h2>{props.name}</h2>
         <div className="envelope-adsr">
             <Knob label="Attack" handler={setEnvelopeOption.bind(null, envelope, 'attack')} min={1} max={10} curve={1} a={0.001} b={4.35} />

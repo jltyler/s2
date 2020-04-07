@@ -24,7 +24,7 @@ const getAudioConnection = (iface, filter) => {
 const Filter = (props) => {
     const filter = props.interface.getFromName(props.name);
     return (
-        <div className="filter">
+        <div className="node filter">
             <h3>{props.name}</h3>
             <div>
                 <Knob label="Frequency" handler={setOption.bind(null, filter, 'frequency')} min={0} max={22050} value={22050} continuous={true} />

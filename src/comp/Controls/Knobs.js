@@ -201,7 +201,7 @@ class Knob extends Component {
 
     render() {
         return (
-            <div className="knob-container" onContextMenu={()=>false}>
+            <div className="knob-container" onContextMenu={() => false}>
                 {this.state.showValue && <div className="knob-value-label">{this.state.value.toFixed(this.precision)}</div>}
                 <div className="knob" onMouseDown={this.pressHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
                 {this.props.label && <div className="knob-label">{this.props.label}</div>}
