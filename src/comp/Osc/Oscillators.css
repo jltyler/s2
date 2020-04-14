@@ -30,16 +30,20 @@
     font-size: 20px;
 }
 
+.LFO {
+    margin: 0 auto;
+}
+
 .oscillator-general,
+.oscillator-wave,
 .oscillator-envelope,
-.oscillator-tremolo {
+.oscillator-out {
     display: block;
 }
 
-.oscillator-general-global,
-.oscillator-general-main {
+.oscillator-general > div {
     display: inline-block;
-    vertical-align: top;
+    vertical-align: top;;
 }
 
 .add-oscillator, .add-lfo, .add-envelope, .add-filter, .add-echo {

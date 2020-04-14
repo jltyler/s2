@@ -20,16 +20,17 @@ class Waveform extends Component {
     }
 
     render() {
-        const waveforms = ['sine', 'square', 'triangle', 'sawtooth'];
+        const waveforms = ['sine', 'square', '!', 'triangle', 'sawtooth'];
         if (this.props.waves && this.props.waves instanceof Array) {
             waveforms.concat(this.props.waves);
         }
-        const images = [sineWave, squareWave, triangleWave, sawWave];
+        const images = [sineWave, squareWave, null, triangleWave, sawWave];
+        const size = this.props.size ? this.props.size : '28px';
         return (
             <div className="waveform-container">
                 <ul>
                     {waveforms.map((w, i) => {
-                        return <li className={this.state.selected === w ? 'selected' : ''} key={i} onClick={this.clickHandler.bind(this, w)}><img width="50px" height="50px" src={images[i]} /></li>;
+                        return w === '!' ? <br /> : <li className={this.state.selected === w ? 'selected' : ''} key={i} onClick={this.clickHandler.bind(this, w)}><img width={size} height={size} src={images[i]} /></li>;
                     })}
                 </ul>
             </div>

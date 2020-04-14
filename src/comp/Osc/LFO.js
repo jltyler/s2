@@ -26,6 +26,7 @@ const LFO = (props) => {
         <h2>{props.name}</h2>
             <Knob label="Frequency" handler={setFrequency.bind(null, lfo)} min={0.01} max={100} continuous={true} />
             <Knob label="Amplitude" handler={setAmplitude.bind(null, lfo)} min={0.01} max={1000} continuous={true} />
+            <br />
             <Waveform handler={setWaveform.bind(null, lfo)} />
             <ParamConnection s2={props.s2} name={props.name} />
         </div>

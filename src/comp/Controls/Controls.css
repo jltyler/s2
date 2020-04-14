@@ -27,9 +27,8 @@
 .knob-container {
     position: relative;
     display: inline-block;
-    width: 60px;
+    padding: 5px 0;
     box-sizing: border-box;
-    border: 1px solid white;
 }
 
 .knob {
@@ -41,16 +40,20 @@
     height: 50px;
     border-radius: 50%;
     background-color: black;
+    border: 1px solid thistle;
     color: thistle;
     text-align: center;
-    user-select: none;
     line-height: 1em;
+}
+
+.knob.large {
+    width: 100px;
+    height: 100px;
 }
 
 .knob-label, .knob-value-label {
     font-size: 12px;
     text-align: center;
-    width: 60px;
     padding: 0;
     margin: 0;
     color: whitesmoke;
@@ -116,7 +119,7 @@
 }
 
 .waveform-container {
-    border: 1px solid black;
+    display: inline-block;
     padding: 2px;
     color: green;
     list-style: none;

@@ -203,7 +203,7 @@ class Knob extends Component {
         return (
             <div className="knob-container" onContextMenu={() => false}>
                 {this.state.showValue && <div className="knob-value-label">{this.state.value.toFixed(this.precision)}</div>}
-                <div className="knob" onMouseDown={this.pressHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
+                <div className={'knob' + (this.props.large ? ' large' : '')} onMouseDown={this.pressHandler.bind(this)} style={{transform: 'rotate(' + (this.state.angle + (Math.PI / 2)) + 'rad)'}}>|</div> <br />
                 {this.props.label && <div className="knob-label">{this.props.label}</div>}
                 {this.state.editing && <div className="knob-edit" style={{top: 0}}>
                     <input type="number" placeholder="value" onBlur={this.editValue.bind(this)}></input>
