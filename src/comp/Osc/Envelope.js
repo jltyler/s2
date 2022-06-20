@@ -1,6 +1,7 @@
 import React from 'react';
 import {Knob} from '../Controls/Knobs';
 import ParamConnection from '../Controls/ParamConnection';
+import Name from '../Controls/Name';
 
 const setEnvelopeOption = (envelope, key, value) => {
     envelope.setOption(key, value);
@@ -10,7 +11,7 @@ const Envelope = (props) => {
     const envelope = props.s2.getEnvelope(props.name);
     return (
     <div className="node envelope">
-        <h2>{props.name}</h2>
+        <Name name={props.name} handler={props.s2.rename.bind(props.s2, props.name)} />
         <div className="envelope-misc">
             <Knob label="Scale" handler={setEnvelopeOption.bind(null, envelope, 'scale')} min={-5000.0} max={5000.0} large={true} />
             {/* <Knob label="Length" handler={setEnvelopeOption.bind(null, envelope, 'length')} min={0.0} max={10.0} /> */}

@@ -5,6 +5,7 @@ import Envelope from './Envelope';
 import Filter from './Filter';
 import Echo from './Echo';
 import './Oscillators.css';
+import { random } from '../../Utility';
 
 class Oscillators extends Component {
     constructor(props) {
@@ -31,11 +32,13 @@ class Oscillators extends Component {
     }
 
     addOscillator() {
-        this.setState((prevState) => {
-            const oscillators = [...prevState.oscillators];
-            oscillators.push(this.interface.newVoice());
-            return {oscillators};
-        });
+        // this.setState((prevState) => {
+        //     const oscillators = [...prevState.oscillators];
+        //     oscillators.push(this.interface.newVoice());
+        //     return {oscillators};
+        // });
+        this.interface.newVoice();
+        this.setState({update: Math.random()});
     }
 
     addLFO() {
@@ -75,13 +78,13 @@ class Oscillators extends Component {
     }
 
     renderOscillators() {
-        return Object.keys(this.interface.getVoices()).map((name) => {
+        return Object.keys(this.interface.getVoices()).map((name, i) => {
             return <Oscillator name={name} key={name} interface={this.interface} update={this.update.bind(this)} />;
         });
     }
 
     renderLFOs() {
-        return Object.keys(this.interface.getLFOs()).map((name) => {
+        return Object.keys(this.interface.getLFOs()).map((name, i) => {
             return <LFO name={name} key={name} s2={this.interface} update={this.update.bind(this)} />;
         });
     }

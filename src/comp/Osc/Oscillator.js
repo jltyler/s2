@@ -3,6 +3,7 @@ import {VerticalSlider} from '../Controls/Sliders';
 import {Knob} from '../Controls/Knobs';
 import {Switch} from '../Controls/Switches';
 import Waveform from '../Controls/Waveform';
+import Name from '../Controls/Name';
 
 const logHandler = function() {
     console.log(arguments);
@@ -41,7 +42,7 @@ const Oscillator = (props) => {
     const voice = props.interface.getVoice(props.name);
     return (
         <div className="node oscillator">
-            <h3 onDoubleClick={logHandler}>{props.name}</h3>
+            <Name name={props.name} handler={props.interface.rename.bind(props.interface, props.name)} />
             <div className="oscillator-general">
                 <div>
                     <Knob label="Volume" handler={setVoiceOption.bind(null, voice, 'gain')} min={0.0} max={1.0} continuous={true} large={true} />

@@ -15,20 +15,13 @@ class ParamConnection extends Component {
         this.s2 = props.s2;
         this.name = props.name;
         this.state = {
-            show: false,
-            current: []
+            show: false
         };
     }
 
     setConnection(dest, param, value) {
         setConnection(this.s2, this.name, dest, param, value);
-        this.setState((prevState) => {
-            const current = prevState.current.slice();
-            if (value && !current.some ((d) => (d[0] === dest && d[1] === param))) {
-                current.push([dest, param]);
-            }
-            return { current, show: false };
-        });
+        this.setState({ show: false });
     }
 
     removeCurrent(index) {
@@ -46,17 +39,18 @@ class ParamConnection extends Component {
                 const on = active.some((dd) => (dd.dest.name === d[0] && dd.param === d[1]));
                 return (<li key={d}>
                     <Switch handler={this.setConnection.bind(this, d[0], d[1])} value={on} />
-                    <span>${d[0]}.${d[1]}</span>
+                    <span>{d[0]}.{d[1]}</span>
                 </li>);
             }
             );
         } else {
-            return this.state.current.map((d, i) => {
+            return active.map((pc, i) => {
+                const d = [pc.dest.name, pc.param];
                 const on = active.some((dd) => (dd.dest.name === d[0] && dd.param === d[1]));
                 // console.log(`${d[0]}.${d[1]}: `, on);
-                return (<li key={d}>
+                return (<li key={i}>
                     <Switch handler={this.setConnection.bind(this, d[0], d[1])} value={on} />
-                    <span>${d[0]}.${d[1]}</span>
+                    <span>{d[0]}.{d[1]}</span>
                     {!on ? <button onClick={this.removeCurrent.bind(this, i)}>X</button> : ''}
                 </li>);
             });

@@ -58,7 +58,8 @@ class Main extends Component {
                 {(!this.state.removeLanding) && <LandingPage hidden={!this.state.showLanding} clickHandler={this.hideLandingPage} />}
                 <button onClick={s2audio.keysOn}>Testing time</button>
                 <button onClick={s2audio.stop}>Make it stop!!!</button>
-                <button onClick={() => console.log('Connections', s2audio.paramConnections)}>Connections</button>
+                <button onClick={() => console.log('Params', s2audio.paramConnections)}>Params</button>
+                <button onClick={() => console.log('Destinations', s2audio.audioConnections)}>Destinations</button>
                 <button onClick={() => console.log('Nodes', s2audio.getAllNodes())}>Nodes</button>
                 <button onClick={() => console.log('Debug', s2audio.getConnectionsDebug())}>Debug connections</button>
                 <main className="main">

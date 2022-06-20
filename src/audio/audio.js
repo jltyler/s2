@@ -205,9 +205,27 @@ class S2Audio {
     rename(name, newName) {
         const l = this.getTypeList(name);
         if (l) {
-            newName = firstNameAvailable(newName);
+            newName = this.firstNameAvailable(newName);
             l[newName] = l[name];
+            l[newName].setName(newName);
             delete l[name];
+
+            // change audio connections
+            if (name in this.audioConnections) {
+                this.audioConnections[newName] = this.audioConnections[name];
+                delete this.audioConnections[name];
+            }
+
+            const sourceNames = this.getAudioConnectionsByDestination(name);
+            if (sourceNames.length) {
+                sourceNames.forEach((sname) => {
+                    this.audioConnections[sname] = newName;
+                });
+                // console.log(sourceNames);
+            }
+
+
+
             return newName;
         }
         return null;
@@ -390,7 +408,7 @@ class S2Audio {
             if (source && dest) {
                 const newConnection = new ParamConnection(source, dest, param);
                 if (newConnection.isValid) this.paramConnections.push(newConnection);
-            } else console.warn('Failed connection: Invalid reference!', source, receiver);
+            } else console.warn('Failed connection: Invalid reference!', source, dest);
         }
     }
 
@@ -579,6 +597,12 @@ class S2Audio {
         return connections;
     }
 
+    /**
+     * Recursive function that connects audio connection chain
+     * @private
+     * @param {string} name Name of node
+     * @param {number} id ID of playing node instance
+     */
     audioConnectionHorror(name, id) {
         let connections = [];
         const source = this.getFromName(name);
